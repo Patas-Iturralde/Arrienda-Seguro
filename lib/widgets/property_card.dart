@@ -1,9 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_colors.dart';
 import '../core/utils/formatters.dart';
 import '../data/models/property.dart';
+import 'base64_image.dart';
 
 class PropertyCard extends StatelessWidget {
   const PropertyCard({
@@ -67,11 +67,10 @@ class _PropertyImage extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (property.fotoPrincipal != null)
-              CachedNetworkImage(
-                imageUrl: property.fotoPrincipal!,
+              Base64Image(
+                base64: property.fotoPrincipal,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => Container(color: AppColors.divider),
-                errorWidget: (_, __, ___) => Container(
+                errorWidget: Container(
                   color: AppColors.divider,
                   child: const Icon(Icons.apartment, size: 40),
                 ),

@@ -40,9 +40,10 @@ class MockAuthRepository implements AuthRepository {
     required String password,
     required String nombre,
     required String apellido,
+    required String telefono,
+    required String cedula,
     required UserRole role,
-    String telefono = '',
-    String cedula = '',
+    String? fotoBase64,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 500));
     final exists = _data.users.any(
@@ -59,11 +60,28 @@ class MockAuthRepository implements AuthRepository {
       telefono: telefono,
       cedula: cedula,
       role: role,
+      fotoBase64: fotoBase64,
     );
     _data.users.add(user);
     _currentUser = user;
     _controller.add(user);
     return AuthResult.success(user);
+  }
+
+  @override
+  Future<AuthResult> updateProfilePhoto(String userId, String fotoBase64) async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    final index = _data.users.indexWhere((u) => u.id == userId);
+    if (index == -1) {
+      return const AuthResult.failure('Usuario no encontrado.');
+    }
+    final updated = _data.users[index].copyWith(fotoBase64: fotoBase64);
+    _data.users[index] = updated;
+    if (_currentUser?.id == userId) {
+      _currentUser = updated;
+      _controller.add(updated);
+    }
+    return AuthResult.success(updated);
   }
 
   @override

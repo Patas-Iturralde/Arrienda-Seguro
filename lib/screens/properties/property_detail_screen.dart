@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +9,7 @@ import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/property_provider.dart';
 import '../../routing/app_routes.dart';
+import '../../widgets/base64_image.dart';
 
 class PropertyDetailScreen extends StatefulWidget {
   const PropertyDetailScreen({super.key, required this.propertyId});
@@ -295,11 +295,10 @@ class _PhotoGallery extends StatelessWidget {
     return PageView.builder(
       itemCount: fotos.length,
       itemBuilder: (context, index) {
-        return CachedNetworkImage(
-          imageUrl: fotos[index],
+        return Base64Image(
+          base64: fotos[index],
           fit: BoxFit.cover,
-          placeholder: (_, __) => Container(color: AppColors.divider),
-          errorWidget: (_, __, ___) => Container(
+          errorWidget: Container(
             color: AppColors.divider,
             child: const Icon(Icons.broken_image, size: 64),
           ),

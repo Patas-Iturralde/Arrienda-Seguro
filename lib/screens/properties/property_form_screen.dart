@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models/property.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/property_provider.dart';
+import '../../widgets/base64_image_picker.dart';
 
 class PropertyFormScreen extends StatefulWidget {
   const PropertyFormScreen({super.key, this.property});
@@ -24,8 +25,8 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
   late final TextEditingController _ciudadController;
   late final TextEditingController _valorController;
   late final TextEditingController _tipoController;
-  late final TextEditingController _fotosController;
   late final TextEditingController _serviciosController;
+  late List<String> _fotosBase64;
   late bool _disponible;
   bool _saving = false;
 
@@ -43,7 +44,7 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
       text: p != null ? p.valor.toStringAsFixed(0) : '',
     );
     _tipoController = TextEditingController(text: p?.tipo ?? 'Departamento');
-    _fotosController = TextEditingController(text: p?.fotos.join('\n') ?? '');
+    _fotosBase64 = List<String>.from(p?.fotos ?? []);
     _serviciosController =
         TextEditingController(text: p?.servicios.join('\n') ?? '');
     _disponible = p?.disponible ?? true;
@@ -57,7 +58,6 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
     _ciudadController.dispose();
     _valorController.dispose();
     _tipoController.dispose();
-    _fotosController.dispose();
     _serviciosController.dispose();
     super.dispose();
   }
@@ -70,11 +70,7 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
 
     setState(() => _saving = true);
 
-    final fotos = _fotosController.text
-        .split('\n')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
+    final fotos = _fotosBase64;
     final servicios = _serviciosController.text
         .split('\n')
         .map((s) => s.trim())
@@ -184,14 +180,9 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _fotosController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Fotografías (URLs, una por línea)',
-                hintText: 'https://...\nhttps://...',
-                alignLabelWithHint: true,
-              ),
+            Base64ImagePickerField(
+              images: _fotosBase64,
+              onChanged: (fotos) => setState(() => _fotosBase64 = fotos),
             ),
             const SizedBox(height: 16),
             TextFormField(

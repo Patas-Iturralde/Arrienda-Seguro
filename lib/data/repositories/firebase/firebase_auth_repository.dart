@@ -76,9 +76,10 @@ class FirebaseAuthRepository implements AuthRepository {
     required String password,
     required String nombre,
     required String apellido,
+    required String telefono,
+    required String cedula,
     required UserRole role,
-    String telefono = '',
-    String cedula = '',
+    String? fotoBase64,
   }) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
@@ -94,10 +95,26 @@ class FirebaseAuthRepository implements AuthRepository {
         telefono: telefono,
         cedula: cedula,
         role: role,
+        fotoBase64: fotoBase64,
       );
 
       await _users.doc(user.id).set(user.toMap());
       _cachedUser = user;
+      return AuthResult.success(user);
+    } catch (e) {
+      return AuthResult.failure(FirebaseAuthErrors.message(e));
+    }
+  }
+
+  @override
+  Future<AuthResult> updateProfilePhoto(String userId, String fotoBase64) async {
+    try {
+      await _users.doc(userId).update({'fotoBase64': fotoBase64});
+      if (_cachedUser?.id == userId) {
+        _cachedUser = _cachedUser!.copyWith(fotoBase64: fotoBase64);
+        return AuthResult.success(_cachedUser);
+      }
+      final user = await _loadUser(userId);
       return AuthResult.success(user);
     } catch (e) {
       return AuthResult.failure(FirebaseAuthErrors.message(e));

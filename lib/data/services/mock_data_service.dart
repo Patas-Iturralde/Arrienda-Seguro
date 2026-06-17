@@ -67,10 +67,7 @@ class MockDataService {
       arrendadorId: 'arrendador-1',
       arrendadorNombre: 'Juan Pérez',
       tipo: 'Apartamento',
-      fotos: const [
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-      ],
+      fotos: const [],
       servicios: const [
         'WiFi incluido',
         'Parqueadero',
@@ -92,10 +89,7 @@ class MockDataService {
       arrendadorId: 'arrendador-1',
       arrendadorNombre: 'Juan Pérez',
       tipo: 'Casa',
-      fotos: const [
-        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
-        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
-      ],
+      fotos: const [],
       servicios: const [
         'WiFi incluido',
         'Jardín privado',
@@ -117,9 +111,7 @@ class MockDataService {
       arrendadorId: 'arrendador-1',
       arrendadorNombre: 'Juan Pérez',
       tipo: 'Local comercial',
-      fotos: const [
-        'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800',
-      ],
+      fotos: const [],
       servicios: const [
         'Baño privado',
         'Vitrina amplia',
@@ -140,10 +132,7 @@ class MockDataService {
       arrendadorId: 'arrendador-1',
       arrendadorNombre: 'Juan Pérez',
       tipo: 'Estudio',
-      fotos: const [
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-        'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800',
-      ],
+      fotos: const [],
       servicios: const [
         'Amoblado',
         'Servicios incluidos',

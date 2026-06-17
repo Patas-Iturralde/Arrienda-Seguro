@@ -5,11 +5,32 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
 import '../../routing/app_routes.dart';
-import '../../widgets/user_avatar.dart';
+import '../../widgets/base64_image_picker.dart';
 import '../auth/login_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _updatingPhoto = false;
+
+  Future<void> _updatePhoto(String fotoBase64) async {
+    setState(() => _updatingPhoto = true);
+    final result =
+        await context.read<AuthProvider>().updateProfilePhoto(fotoBase64);
+    if (mounted) {
+      setState(() => _updatingPhoto = false);
+      if (!result.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.error ?? 'Error al guardar la foto')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +51,20 @@ class ProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  UserAvatar(user: user, radius: 40),
+                  EditableProfilePhoto(
+                    fotoBase64: user.fotoBase64,
+                    iniciales: user.iniciales,
+                    loading: _updatingPhoto,
+                    onPhotoChanged: _updatePhoto,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Toca la foto para cambiarla',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     user.nombreCompleto,

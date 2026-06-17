@@ -29,9 +29,10 @@ class AuthProvider extends ChangeNotifier {
     required String password,
     required String nombre,
     required String apellido,
+    required String telefono,
+    required String cedula,
     required UserRole role,
-    String telefono = '',
-    String cedula = '',
+    String? fotoBase64,
   }) async {
     final result = await _authRepository.signUp(
       email: email,
@@ -41,7 +42,19 @@ class AuthProvider extends ChangeNotifier {
       role: role,
       telefono: telefono,
       cedula: cedula,
+      fotoBase64: fotoBase64,
     );
+    if (result.isSuccess) notifyListeners();
+    return result;
+  }
+
+  Future<AuthResult> updateProfilePhoto(String fotoBase64) async {
+    final user = currentUser;
+    if (user == null) {
+      return const AuthResult.failure('No hay sesión activa.');
+    }
+    final result =
+        await _authRepository.updateProfilePhoto(user.id, fotoBase64);
     if (result.isSuccess) notifyListeners();
     return result;
   }

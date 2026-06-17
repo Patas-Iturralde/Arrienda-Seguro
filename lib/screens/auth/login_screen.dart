@@ -5,6 +5,7 @@ import '../../core/config/app_config.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
+import '../../widgets/base64_image_picker.dart';
 import '../shell/main_shell.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -218,8 +219,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nombreController = TextEditingController();
   final _apellidoController = TextEditingController();
   final _emailController = TextEditingController();
+  final _telefonoController = TextEditingController();
+  final _cedulaController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   UserRole _role = UserRole.arrendatario;
+  String? _fotoBase64;
   bool _loading = false;
   String? _error;
 
@@ -228,7 +233,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _nombreController.dispose();
     _apellidoController.dispose();
     _emailController.dispose();
+    _telefonoController.dispose();
+    _cedulaController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -245,7 +253,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           password: _passwordController.text,
           nombre: _nombreController.text.trim(),
           apellido: _apellidoController.text.trim(),
+          telefono: _telefonoController.text.trim(),
+          cedula: _cedulaController.text.trim(),
           role: _role,
+          fotoBase64: _fotoBase64,
         );
 
     if (!mounted) return;
@@ -271,41 +282,166 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
+            const Text(
+              'Datos personales',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: Column(
+                children: [
+                  EditableProfilePhoto(
+                    fotoBase64: _fotoBase64,
+                    iniciales: _nombreController.text.isNotEmpty &&
+                            _apellidoController.text.isNotEmpty
+                        ? '${_nombreController.text[0]}${_apellidoController.text[0]}'
+                            .toUpperCase()
+                        : '?',
+                    loading: false,
+                    onPhotoChanged: (foto) =>
+                        setState(() => _fotoBase64 = foto),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Foto de perfil (opcional)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  if (_fotoBase64 != null) ...[
+                    const SizedBox(height: 4),
+                    TextButton(
+                      onPressed: () => setState(() => _fotoBase64 = null),
+                      child: const Text('Quitar foto'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _nombreController,
-              decoration: const InputDecoration(labelText: 'Nombre'),
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: 'Nombre *'),
               validator: (v) =>
-                  v == null || v.trim().isEmpty ? 'Requerido' : null,
+                  v == null || v.trim().isEmpty ? 'Ingresa tu nombre' : null,
+              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _apellidoController,
-              decoration: const InputDecoration(labelText: 'Apellido'),
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: 'Apellido *'),
               validator: (v) =>
-                  v == null || v.trim().isEmpty ? 'Requerido' : null,
+                  v == null || v.trim().isEmpty ? 'Ingresa tu apellido' : null,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _cedulaController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Cédula / documento *',
+                hintText: 'Ej: 1234567890',
+              ),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) {
+                  return 'Ingresa tu número de documento';
+                }
+                if (v.trim().length < 5) {
+                  return 'Documento inválido';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _telefonoController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Teléfono *',
+                hintText: 'Ej: +57 300 123 4567',
+                prefixIcon: Icon(Icons.phone_outlined),
+              ),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) {
+                  return 'Ingresa tu teléfono';
+                }
+                if (v.trim().length < 7) {
+                  return 'Teléfono inválido';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Acceso a la cuenta',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Correo'),
-              validator: (v) =>
-                  v == null || !v.contains('@') ? 'Correo inválido' : null,
+              autocorrect: false,
+              decoration: const InputDecoration(
+                labelText: 'Correo electrónico *',
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) {
+                  return 'Ingresa tu correo';
+                }
+                if (!v.contains('@') || !v.contains('.')) {
+                  return 'Correo inválido';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _passwordController,
               obscureText: true,
               decoration: const InputDecoration(
-                labelText: 'Contraseña (mín. 6 caracteres)',
+                labelText: 'Contraseña *',
+                hintText: 'Mínimo 6 caracteres',
+                prefixIcon: Icon(Icons.lock_outline),
               ),
               validator: (v) =>
                   v == null || v.length < 6 ? 'Mínimo 6 caracteres' : null,
             ),
             const SizedBox(height: 16),
+            TextFormField(
+              controller: _confirmPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Confirmar contraseña *',
+                prefixIcon: Icon(Icons.lock_outline),
+              ),
+              validator: (v) {
+                if (v == null || v.isEmpty) {
+                  return 'Confirma tu contraseña';
+                }
+                if (v != _passwordController.text) {
+                  return 'Las contraseñas no coinciden';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
             DropdownButtonFormField<UserRole>(
               initialValue: _role,
-              decoration: const InputDecoration(labelText: 'Tipo de usuario'),
+              decoration: const InputDecoration(
+                labelText: 'Tipo de usuario *',
+              ),
               items: const [
                 DropdownMenuItem(
                   value: UserRole.arrendatario,
@@ -336,7 +472,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       width: 22,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Registrarme'),
+                  : const Text('Crear cuenta'),
             ),
           ],
         ),

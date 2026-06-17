@@ -24,6 +24,8 @@ class Property {
   final double valor;
   final String arrendadorId;
   final String tipo;
+
+  /// Lista de fotografías en base64 (JPEG) guardadas en Firestore.
   final List<String> fotos;
   final List<String> servicios;
   final bool disponible;

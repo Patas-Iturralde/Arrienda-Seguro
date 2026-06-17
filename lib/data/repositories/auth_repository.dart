@@ -13,10 +13,12 @@ abstract class AuthRepository {
     required String password,
     required String nombre,
     required String apellido,
+    required String telefono,
+    required String cedula,
     required UserRole role,
-    String telefono,
-    String cedula,
+    String? fotoBase64,
   });
+  Future<AuthResult> updateProfilePhoto(String userId, String fotoBase64);
   Future<void> signOut();
   Future<List<AppUser>> getUsersByRole(UserRole role);
   Future<AppUser?> getUserById(String id);
