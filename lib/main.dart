@@ -1,26 +1,46 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
+import 'core/config/app_config.dart';
 import 'core/di/service_locator.dart';
 import 'core/theme/app_theme.dart';
+import 'data/models/property.dart';
+import 'firebase_options.dart';
 import 'providers/app_providers.dart';
+import 'providers/property_provider.dart';
 import 'routing/app_routes.dart';
 import 'screens/auth/auth_wrapper.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/calendar/calendar_screen.dart';
+import 'screens/chat/chat_list_screen.dart';
+import 'screens/chat/chat_screen.dart';
 import 'screens/contracts/contract_detail_screen.dart';
 import 'screens/contracts/generate_contract_screen.dart';
 import 'screens/contracts/renew_contract_screen.dart';
 import 'screens/documents/documents_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
 import 'screens/payments/payments_screen.dart';
+import 'screens/properties/property_detail_screen.dart';
+import 'screens/properties/property_form_screen.dart';
 import 'screens/shell/main_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es', null);
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    if (!DefaultFirebaseOptions.currentPlatform.projectId.startsWith('YOUR_')) {
+      firebaseEnabled = true;
+    }
+  } catch (e) {
+    debugPrint('Firebase no configurado, usando datos mock: $e');
+  }
 
   final locator = ServiceLocator.instance;
 
@@ -35,6 +55,9 @@ Future<void> main() async {
         ),
         ChangeNotifierProvider(
           create: (_) => PaymentProvider(locator.paymentRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => PropertyProvider(locator.propertyRepository),
         ),
       ],
       child: const ArriendaSeguroApp(),
@@ -64,6 +87,8 @@ class ArriendaSeguroApp extends StatelessWidget {
         AppRoutes.generateContract: (_) => const GenerateContractScreen(),
         AppRoutes.calendar: (_) => const CalendarScreen(),
         AppRoutes.notifications: (_) => const NotificationsScreen(),
+        AppRoutes.propertyForm: (_) => const PropertyFormScreen(),
+        AppRoutes.chatList: (_) => const ChatListScreen(),
       },
       onGenerateRoute: (settings) {
         switch (settings.name) {
@@ -95,6 +120,24 @@ class ArriendaSeguroApp extends StatelessWidget {
             return MaterialPageRoute(
               builder: (_) => DocumentsScreen(
                 contractId: settings.arguments as String?,
+              ),
+            );
+          case AppRoutes.propertyDetail:
+            return MaterialPageRoute(
+              builder: (_) => PropertyDetailScreen(
+                propertyId: settings.arguments as String,
+              ),
+            );
+          case AppRoutes.propertyForm:
+            return MaterialPageRoute(
+              builder: (_) => PropertyFormScreen(
+                property: settings.arguments as Property?,
+              ),
+            );
+          case AppRoutes.chat:
+            return MaterialPageRoute(
+              builder: (_) => ChatScreen(
+                roomId: settings.arguments as String,
               ),
             );
           case AppRoutes.home:

@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 import '../data/models/app_user.dart';
+import '../data/models/auth_result.dart';
 import '../data/models/contract.dart';
 import '../data/models/payment.dart';
+import '../data/models/user_role.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/contract_repository.dart';
 import '../data/repositories/payment_repository.dart';
@@ -16,10 +18,32 @@ class AuthProvider extends ChangeNotifier {
   AppUser? get currentUser => _authRepository.currentUser;
   bool get isAuthenticated => currentUser != null;
 
-  Future<bool> signIn(String email, String password) async {
-    final user = await _authRepository.signIn(email, password);
-    notifyListeners();
-    return user != null;
+  Future<AuthResult> signIn(String email, String password) async {
+    final result = await _authRepository.signIn(email, password);
+    if (result.isSuccess) notifyListeners();
+    return result;
+  }
+
+  Future<AuthResult> signUp({
+    required String email,
+    required String password,
+    required String nombre,
+    required String apellido,
+    required UserRole role,
+    String telefono = '',
+    String cedula = '',
+  }) async {
+    final result = await _authRepository.signUp(
+      email: email,
+      password: password,
+      nombre: nombre,
+      apellido: apellido,
+      role: role,
+      telefono: telefono,
+      cedula: cedula,
+    );
+    if (result.isSuccess) notifyListeners();
+    return result;
   }
 
   Future<void> signOut() async {

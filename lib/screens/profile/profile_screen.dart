@@ -72,6 +72,11 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _MenuTile(
+            icon: Icons.chat_bubble_outline,
+            title: 'Mis conversaciones',
+            onTap: () => Navigator.pushNamed(context, AppRoutes.chatList),
+          ),
+          _MenuTile(
             icon: Icons.security,
             title: 'Seguridad',
             onTap: () => _showPlaceholder(context, 'Seguridad'),

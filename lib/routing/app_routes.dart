@@ -12,4 +12,9 @@ class AppRoutes {
   static const renewContract = '/contracts/renew';
   static const documents = '/documents';
   static const profile = '/profile';
+  static const properties = '/properties';
+  static const propertyDetail = '/properties/detail';
+  static const propertyForm = '/properties/form';
+  static const chat = '/chat';
+  static const chatList = '/chat/list';
 }

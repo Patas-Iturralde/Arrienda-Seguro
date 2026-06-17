@@ -1,3 +1,5 @@
+import '../models/chat_message.dart';
+import '../models/chat_room.dart';
 import '../models/app_document.dart';
 import '../models/app_notification.dart';
 import '../models/app_user.dart';
@@ -54,28 +56,107 @@ class MockDataService {
   ];
 
   final properties = <Property>[
-    const Property(
+    Property(
       id: 'prop-1',
-      tipo: 'Apartamento',
+      nombre: 'Apartamento moderno en Chapinero',
+      descripcion:
+          'Amplio apartamento de 85 m² con excelente iluminación, cocina integral y balcón. Ideal para parejas o profesionales.',
       direccion: 'Calle 45 #12-34',
       ciudad: 'Bogotá',
-      nombre: 'Apartamento 201',
+      valor: 1250000,
+      arrendadorId: 'arrendador-1',
+      arrendadorNombre: 'Juan Pérez',
+      tipo: 'Apartamento',
+      fotos: const [
+        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
+        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
+      ],
+      servicios: const [
+        'WiFi incluido',
+        'Parqueadero',
+        'Portería 24h',
+        'Zona de lavandería',
+      ],
+      disponible: true,
+      createdAt: DateTime(2024, 1, 10),
+      updatedAt: DateTime.now(),
     ),
-    const Property(
+    Property(
       id: 'prop-2',
-      tipo: 'Casa',
+      nombre: 'Casa El Poblado con jardín',
+      descripcion:
+          'Casa de 3 habitaciones en zona residencial, con jardín privado y cocina abierta. Perfecta para familias.',
       direccion: 'Carrera 15 #78-90',
       ciudad: 'Medellín',
-      nombre: 'Casa El Poblado',
+      valor: 2800000,
+      arrendadorId: 'arrendador-1',
+      arrendadorNombre: 'Juan Pérez',
+      tipo: 'Casa',
+      fotos: const [
+        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
+        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+      ],
+      servicios: const [
+        'WiFi incluido',
+        'Jardín privado',
+        'Mascotas permitidas',
+        'Cocina equipada',
+      ],
+      disponible: true,
+      createdAt: DateTime(2024, 3, 5),
+      updatedAt: DateTime.now(),
     ),
-    const Property(
+    Property(
       id: 'prop-3',
-      tipo: 'Local comercial',
+      nombre: 'Local comercial Av. 68',
+      descripcion:
+          'Local en primer piso con vitrina amplia, baño privado y acceso directo desde la avenida principal.',
       direccion: 'Av. 68 #25-10',
       ciudad: 'Bogotá',
-      nombre: 'Local Comercial 5',
+      valor: 3500000,
+      arrendadorId: 'arrendador-1',
+      arrendadorNombre: 'Juan Pérez',
+      tipo: 'Local comercial',
+      fotos: const [
+        'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800',
+      ],
+      servicios: const [
+        'Baño privado',
+        'Vitrina amplia',
+        'Acceso directo',
+      ],
+      disponible: false,
+      createdAt: DateTime(2023, 8, 20),
+      updatedAt: DateTime.now(),
+    ),
+    Property(
+      id: 'prop-4',
+      nombre: 'Estudio céntrico en Quito',
+      descripcion:
+          'Estudio completamente amoblado cerca del centro histórico. Servicios incluidos y contrato flexible.',
+      direccion: 'Av. Amazonas N24-03',
+      ciudad: 'Quito',
+      valor: 450,
+      arrendadorId: 'arrendador-1',
+      arrendadorNombre: 'Juan Pérez',
+      tipo: 'Estudio',
+      fotos: const [
+        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
+        'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800',
+      ],
+      servicios: const [
+        'Amoblado',
+        'Servicios incluidos',
+        'Cancelación flexible',
+      ],
+      disponible: true,
+      createdAt: DateTime(2024, 6, 1),
+      updatedAt: DateTime.now(),
     ),
   ];
+
+  final chatRooms = <ChatRoom>[];
+  final chatMessages = <String, List<ChatMessage>>{};
 
   late final List<Contract> contracts = [
     Contract(
