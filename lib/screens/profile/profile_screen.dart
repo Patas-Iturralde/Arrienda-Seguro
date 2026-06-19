@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/formatters.dart';
 import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
 import '../../routing/app_routes.dart';
@@ -98,7 +99,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 8),
                   _ContactRow(
                     icon: Icons.badge_outlined,
-                    text: 'C.C. ${user.cedula}',
+                    text: '${user.tipoDocumentoIdentidad.label}: ${user.cedula}',
+                  ),
+                  if (user.ocupacion.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _ContactRow(
+                      icon: Icons.work_outline,
+                      text: user.ocupacion,
+                    ),
+                  ],
+                  if (user.domicilio.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _ContactRow(
+                      icon: Icons.home_outlined,
+                      text: user.domicilio,
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  _ContactRow(
+                    icon: Icons.favorite_outline,
+                    text: user.estadoCivil.label,
+                  ),
+                  const SizedBox(height: 8),
+                  _ContactRow(
+                    icon: Icons.cake_outlined,
+                    text: Formatters.date(user.fechaNacimiento),
                   ),
                 ],
               ),

@@ -5,6 +5,8 @@ import '../models/app_notification.dart';
 import '../models/app_user.dart';
 import '../models/contract.dart';
 import '../models/contract_status.dart';
+import '../models/id_document_type.dart';
+import '../models/marital_status.dart';
 import '../models/payment.dart';
 import '../models/payment_status.dart';
 import '../models/property.dart';
@@ -18,7 +20,7 @@ class MockDataService {
   static final instance = MockDataService._();
 
   final users = <AppUser>[
-    const AppUser(
+    AppUser(
       id: 'admin-1',
       nombre: 'Carlos',
       apellido: 'Administrador',
@@ -26,8 +28,13 @@ class MockDataService {
       telefono: '+57 300 111 0001',
       cedula: '1000000001',
       role: UserRole.admin,
+      estadoCivil: MaritalStatus.soltero,
+      ocupacion: 'Administrador',
+      domicilio: 'Quito, Ecuador',
+      tipoDocumentoIdentidad: IdDocumentType.cedula,
+      fechaNacimiento: DateTime(1985, 3, 15),
     ),
-    const AppUser(
+    AppUser(
       id: 'arrendador-1',
       nombre: 'Juan',
       apellido: 'Pérez',
@@ -35,8 +42,13 @@ class MockDataService {
       telefono: '+57 300 222 0002',
       cedula: '1234567890',
       role: UserRole.arrendador,
+      estadoCivil: MaritalStatus.casado,
+      ocupacion: 'Ingeniero',
+      domicilio: 'Quito, Ecuador',
+      tipoDocumentoIdentidad: IdDocumentType.cedula,
+      fechaNacimiento: DateTime(1988, 7, 20),
     ),
-    const AppUser(
+    AppUser(
       id: 'arrendatario-1',
       nombre: 'María',
       apellido: 'González',
@@ -44,8 +56,13 @@ class MockDataService {
       telefono: '+57 300 333 0003',
       cedula: '9876543210',
       role: UserRole.arrendatario,
+      estadoCivil: MaritalStatus.soltero,
+      ocupacion: 'Contadora',
+      domicilio: 'Quito, Ecuador',
+      tipoDocumentoIdentidad: IdDocumentType.cedula,
+      fechaNacimiento: DateTime(1995, 11, 8),
     ),
-    const AppUser(
+    AppUser(
       id: 'arrendatario-2',
       nombre: 'Pedro',
       apellido: 'Ramírez',
@@ -53,6 +70,11 @@ class MockDataService {
       telefono: '+57 300 444 0004',
       cedula: '5555555555',
       role: UserRole.arrendatario,
+      estadoCivil: MaritalStatus.unionLibre,
+      ocupacion: 'Diseñador',
+      domicilio: 'Cuenca, Ecuador',
+      tipoDocumentoIdentidad: IdDocumentType.cedula,
+      fechaNacimiento: DateTime(1992, 4, 12),
     ),
   ];
 

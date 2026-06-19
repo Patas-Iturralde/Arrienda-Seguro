@@ -3,9 +3,13 @@ import 'package:provider/provider.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/formatters.dart';
+import '../../data/models/id_document_type.dart';
+import '../../data/models/marital_status.dart';
 import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
 import '../../widgets/base64_image_picker.dart';
+import '../../widgets/id_document_picker.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -211,10 +215,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _telefonoController = TextEditingController();
   final _cedulaController = TextEditingController();
+  final _ocupacionController = TextEditingController();
+  final _domicilioController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   UserRole _role = UserRole.arrendatario;
+  MaritalStatus _estadoCivil = MaritalStatus.soltero;
+  IdDocumentType _tipoDocumento = IdDocumentType.cedula;
+  DateTime _fechaNacimiento = DateTime(1995, 1, 1);
   String? _fotoBase64;
+  String? _documentoIdentidadBase64;
   bool _loading = false;
   String? _error;
 
@@ -225,6 +235,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _telefonoController.dispose();
     _cedulaController.dispose();
+    _ocupacionController.dispose();
+    _domicilioController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -232,6 +244,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_documentoIdentidadBase64 == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes subir la foto de tu documento de identidad'),
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _loading = true;
@@ -246,6 +267,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           telefono: _telefonoController.text.trim(),
           cedula: _cedulaController.text.trim(),
           role: _role,
+          estadoCivil: _estadoCivil,
+          ocupacion: _ocupacionController.text.trim(),
+          domicilio: _domicilioController.text.trim(),
+          tipoDocumentoIdentidad: _tipoDocumento,
+          fechaNacimiento: _fechaNacimiento,
+          documentoIdentidadBase64: _documentoIdentidadBase64!,
           fotoBase64: _fotoBase64,
         );
 
@@ -367,6 +394,79 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 }
                 return null;
               },
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<MaritalStatus>(
+              initialValue: _estadoCivil,
+              decoration: const InputDecoration(labelText: 'Estado civil *'),
+              items: MaritalStatus.values
+                  .map(
+                    (s) => DropdownMenuItem(value: s, child: Text(s.label)),
+                  )
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) setState(() => _estadoCivil = v);
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _ocupacionController,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Ocupación *',
+                hintText: 'Ej: Ingeniero, Estudiante',
+              ),
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? 'Ingresa tu ocupación' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _domicilioController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Domicilio *',
+                hintText: 'Dirección de residencia',
+              ),
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? 'Ingresa tu domicilio' : null,
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Fecha de nacimiento *'),
+              subtitle: Text(Formatters.date(_fechaNacimiento)),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: _fechaNacimiento,
+                  firstDate: DateTime(1940),
+                  lastDate: DateTime.now(),
+                );
+                if (date != null) setState(() => _fechaNacimiento = date);
+              },
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<IdDocumentType>(
+              initialValue: _tipoDocumento,
+              decoration: const InputDecoration(
+                labelText: 'Tipo de documento *',
+              ),
+              items: IdDocumentType.values
+                  .map(
+                    (t) => DropdownMenuItem(value: t, child: Text(t.label)),
+                  )
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) setState(() => _tipoDocumento = v);
+              },
+            ),
+            const SizedBox(height: 16),
+            IdDocumentPicker(
+              tipoDocumento: _tipoDocumento,
+              documentoBase64: _documentoIdentidadBase64,
+              onChanged: (value) =>
+                  setState(() => _documentoIdentidadBase64 = value),
             ),
             const SizedBox(height: 24),
             const Text(

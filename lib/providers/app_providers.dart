@@ -6,6 +6,8 @@ import '../data/models/app_user.dart';
 import '../data/models/auth_result.dart';
 import '../data/models/contract.dart';
 import '../data/models/contract_status.dart';
+import '../data/models/id_document_type.dart';
+import '../data/models/marital_status.dart';
 import '../data/models/payment.dart';
 import '../data/models/user_role.dart';
 import '../data/repositories/auth_repository.dart';
@@ -43,6 +45,12 @@ class AuthProvider extends ChangeNotifier {
     required String telefono,
     required String cedula,
     required UserRole role,
+    required MaritalStatus estadoCivil,
+    required String ocupacion,
+    required String domicilio,
+    required IdDocumentType tipoDocumentoIdentidad,
+    required DateTime fechaNacimiento,
+    required String documentoIdentidadBase64,
     String? fotoBase64,
   }) async {
     final result = await _authRepository.signUp(
@@ -53,6 +61,12 @@ class AuthProvider extends ChangeNotifier {
       role: role,
       telefono: telefono,
       cedula: cedula,
+      estadoCivil: estadoCivil,
+      ocupacion: ocupacion,
+      domicilio: domicilio,
+      tipoDocumentoIdentidad: tipoDocumentoIdentidad,
+      fechaNacimiento: fechaNacimiento,
+      documentoIdentidadBase64: documentoIdentidadBase64,
       fotoBase64: fotoBase64,
     );
     if (result.isSuccess) notifyListeners();

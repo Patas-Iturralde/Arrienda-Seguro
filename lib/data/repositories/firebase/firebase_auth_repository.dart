@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/utils/firebase_auth_errors.dart';
 import '../../models/app_user.dart';
 import '../../models/auth_result.dart';
+import '../../models/id_document_type.dart';
+import '../../models/marital_status.dart';
 import '../../models/user_role.dart';
 import '../auth_repository.dart';
 
@@ -51,6 +53,11 @@ class FirebaseAuthRepository implements AuthRepository {
         telefono: firebaseUser.phoneNumber ?? '',
         cedula: '',
         role: UserRole.arrendatario,
+        estadoCivil: MaritalStatus.soltero,
+        ocupacion: '',
+        domicilio: '',
+        tipoDocumentoIdentidad: IdDocumentType.cedula,
+        fechaNacimiento: DateTime(1990, 1, 1),
       );
     }
     return AppUser.fromMap({...doc.data()!, 'id': uid});
@@ -79,6 +86,12 @@ class FirebaseAuthRepository implements AuthRepository {
     required String telefono,
     required String cedula,
     required UserRole role,
+    required MaritalStatus estadoCivil,
+    required String ocupacion,
+    required String domicilio,
+    required IdDocumentType tipoDocumentoIdentidad,
+    required DateTime fechaNacimiento,
+    required String documentoIdentidadBase64,
     String? fotoBase64,
   }) async {
     try {
@@ -95,6 +108,12 @@ class FirebaseAuthRepository implements AuthRepository {
         telefono: telefono,
         cedula: cedula,
         role: role,
+        estadoCivil: estadoCivil,
+        ocupacion: ocupacion,
+        domicilio: domicilio,
+        tipoDocumentoIdentidad: tipoDocumentoIdentidad,
+        fechaNacimiento: fechaNacimiento,
+        documentoIdentidadBase64: documentoIdentidadBase64,
         fotoBase64: fotoBase64,
       );
 

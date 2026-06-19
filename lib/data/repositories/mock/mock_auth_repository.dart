@@ -2,6 +2,8 @@ import 'dart:async';
 
 import '../../models/app_user.dart';
 import '../../models/auth_result.dart';
+import '../../models/id_document_type.dart';
+import '../../models/marital_status.dart';
 import '../../models/user_role.dart';
 import '../auth_repository.dart';
 import '../../services/mock_data_service.dart';
@@ -46,6 +48,12 @@ class MockAuthRepository implements AuthRepository {
     required String telefono,
     required String cedula,
     required UserRole role,
+    required MaritalStatus estadoCivil,
+    required String ocupacion,
+    required String domicilio,
+    required IdDocumentType tipoDocumentoIdentidad,
+    required DateTime fechaNacimiento,
+    required String documentoIdentidadBase64,
     String? fotoBase64,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -63,6 +71,12 @@ class MockAuthRepository implements AuthRepository {
       telefono: telefono,
       cedula: cedula,
       role: role,
+      estadoCivil: estadoCivil,
+      ocupacion: ocupacion,
+      domicilio: domicilio,
+      tipoDocumentoIdentidad: tipoDocumentoIdentidad,
+      fechaNacimiento: fechaNacimiento,
+      documentoIdentidadBase64: documentoIdentidadBase64,
       fotoBase64: fotoBase64,
     );
     _data.users.add(user);
