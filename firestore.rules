@@ -2,39 +2,76 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isContractParty(data) {
+      return isSignedIn()
+        && (request.auth.uid == data.arrendadorId
+            || request.auth.uid == data.arrendatarioId);
+    }
+
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null && request.auth.uid == userId;
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && request.auth.uid == userId;
     }
 
     match /properties/{propertyId} {
       allow read: if resource.data.disponible == true
-        || (request.auth != null && request.auth.uid == resource.data.arrendadorId);
-      allow create: if request.auth != null
+        || (isSignedIn() && request.auth.uid == resource.data.arrendadorId);
+      allow create: if isSignedIn()
         && request.resource.data.arrendadorId == request.auth.uid;
-      allow update, delete: if request.auth != null
+      allow update, delete: if isSignedIn()
         && resource.data.arrendadorId == request.auth.uid;
     }
 
     match /chat_rooms/{roomId} {
-      allow read, update: if request.auth != null
+      allow read, update: if isSignedIn()
         && (request.auth.uid == resource.data.arrendadorId
             || request.auth.uid == resource.data.arrendatarioId);
-      allow create: if request.auth != null;
+      allow create: if isSignedIn()
+        && (request.auth.uid == request.resource.data.arrendadorId
+            || request.auth.uid == request.resource.data.arrendatarioId);
 
       match /messages/{messageId} {
-        allow read, create: if request.auth != null;
+        allow read, create: if isSignedIn()
+          && (request.auth.uid == get(/databases/$(database)/documents/chat_rooms/$(roomId)).data.arrendadorId
+              || request.auth.uid == get(/databases/$(database)/documents/chat_rooms/$(roomId)).data.arrendatarioId);
       }
     }
 
     match /rental_requests/{requestId} {
-      allow read: if request.auth != null
+      allow read: if isSignedIn()
         && (request.auth.uid == resource.data.arrendadorId
             || request.auth.uid == resource.data.arrendatarioId);
-      allow create: if request.auth != null
+      allow create: if isSignedIn()
         && request.resource.data.arrendatarioId == request.auth.uid;
-      allow update: if request.auth != null
+      allow update: if isSignedIn()
         && request.auth.uid == resource.data.arrendadorId;
+    }
+
+    match /contracts/{contractId} {
+      allow read: if isAdmin() || isContractParty(resource.data);
+      allow create: if isSignedIn()
+        && (request.auth.uid == request.resource.data.arrendadorId
+            || request.auth.uid == request.resource.data.arrendatarioId
+            || isAdmin());
+      allow update: if isAdmin() || isContractParty(resource.data);
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isAdmin() || isContractParty(resource.data);
+      allow create: if isSignedIn()
+        && (request.auth.uid == request.resource.data.arrendadorId
+            || request.auth.uid == request.resource.data.arrendatarioId
+            || isAdmin());
+      allow update: if isAdmin() || isContractParty(resource.data);
     }
   }
 }

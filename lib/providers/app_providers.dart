@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../data/models/app_user.dart';
@@ -12,12 +14,20 @@ import '../data/repositories/payment_repository.dart';
 import '../core/di/service_locator.dart';
 
 class AuthProvider extends ChangeNotifier {
-  AuthProvider(this._authRepository);
+  AuthProvider(this._authRepository) {
+    _subscription = _authRepository.authStateChanges.listen((_) {
+      _ready = true;
+      notifyListeners();
+    });
+  }
 
   final AuthRepository _authRepository;
+  StreamSubscription<AppUser?>? _subscription;
+  bool _ready = false;
 
   AppUser? get currentUser => _authRepository.currentUser;
   bool get isAuthenticated => currentUser != null;
+  bool get isReady => _ready;
 
   Future<AuthResult> signIn(String email, String password) async {
     final result = await _authRepository.signIn(email, password);
@@ -64,6 +74,12 @@ class AuthProvider extends ChangeNotifier {
     await _authRepository.signOut();
     notifyListeners();
   }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
 }
 
 class ContractProvider extends ChangeNotifier {
@@ -88,16 +104,18 @@ class ContractProvider extends ChangeNotifier {
       userId: user?.id,
       role: user?.role.name,
     );
-    await _ensurePaymentsForContracts();
+    await _ensurePaymentsForContracts(user);
     _loading = false;
     notifyListeners();
   }
 
-  Future<void> _ensurePaymentsForContracts() async {
+  Future<void> _ensurePaymentsForContracts(AppUser? user) async {
     for (final contract in _contracts) {
       if (contract.status == ContractStatus.finalizado) continue;
-      final existing =
-          await _paymentRepository.getPaymentsByContract(contract.id);
+      final existing = await _paymentRepository.getPaymentsByContract(
+        contract.id,
+        userId: user?.id ?? contract.arrendadorId,
+      );
       if (existing.isEmpty) {
         await _paymentRepository.generateScheduleForContract(contract);
       }
@@ -163,8 +181,11 @@ class PaymentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadByContract(String contractId) async {
-    _payments = await _repository.getPaymentsByContract(contractId);
+  Future<void> loadByContract(String contractId, {AppUser? user}) async {
+    _payments = await _repository.getPaymentsByContract(
+      contractId,
+      userId: user?.id,
+    );
     notifyListeners();
   }
 

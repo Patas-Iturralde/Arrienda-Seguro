@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
 import '../../routing/app_routes.dart';
+import '../chat/chat_list_screen.dart';
 import '../contracts/contracts_screen.dart';
 import '../home/home_screen.dart';
 import '../payments/payments_screen.dart';
@@ -55,10 +56,13 @@ class _MainShellState extends State<MainShell> {
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return;
 
-    if (index == 0 || index == 1 || index == 3) {
+    final isTenant = user.role == UserRole.arrendatario;
+    final paymentsIndex = isTenant ? 4 : 3;
+
+    if (index == 0 || index == 1 || index == paymentsIndex) {
       context.read<ContractProvider>().loadContracts(user);
     }
-    if (index == 0 || index == 3) {
+    if (index == 0 || index == paymentsIndex) {
       context.read<PaymentProvider>().loadDashboardData(user);
     }
   }
@@ -69,6 +73,7 @@ class _MainShellState extends State<MainShell> {
         HomeScreen(),
         ContractsScreen(),
         SizedBox.shrink(),
+        ChatListScreen(),
         PaymentsScreen(),
         ProfileScreen(),
       ];
@@ -136,6 +141,22 @@ class _MainShellState extends State<MainShell> {
       activeIcon: Icon(Icons.person),
       label: 'Perfil',
     );
+
+    if (isTenant) {
+      const chatsItem = BottomNavigationBarItem(
+        icon: Icon(Icons.chat_bubble_outline),
+        activeIcon: Icon(Icons.chat_bubble),
+        label: 'Chats',
+      );
+      return [
+        firstItem,
+        contractsItem,
+        fabItem,
+        chatsItem,
+        paymentsItem,
+        profileItem,
+      ];
+    }
 
     return [firstItem, contractsItem, fabItem, paymentsItem, profileItem];
   }

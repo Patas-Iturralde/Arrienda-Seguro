@@ -199,16 +199,26 @@ class _LandlordRentalRequestsScreenState
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return;
 
-    final room = await ServiceLocator.instance.chatRepository.getOrCreateRoom(
-      propertyId: request.propertyId,
-      propertyName: request.propertyName,
-      arrendadorId: request.arrendadorId,
-      arrendadorName: user.nombreCompleto,
-      arrendatarioId: request.arrendatarioId,
-      arrendatarioName: request.arrendatarioName,
-    );
-    if (!mounted) return;
-    Navigator.pushNamed(context, AppRoutes.chat, arguments: room.id);
+    try {
+      final room = await ServiceLocator.instance.chatRepository.getOrCreateRoom(
+        propertyId: request.propertyId,
+        propertyName: request.propertyName,
+        arrendadorId: request.arrendadorId,
+        arrendadorName: user.nombreCompleto,
+        arrendatarioId: request.arrendatarioId,
+        arrendatarioName: request.arrendatarioName,
+      );
+      if (!mounted) return;
+      Navigator.pushNamed(context, AppRoutes.chat, arguments: room.id);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo abrir el chat: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   @override

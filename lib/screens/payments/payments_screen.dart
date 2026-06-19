@@ -198,7 +198,11 @@ class _PaymentRecordScreenState extends State<PaymentRecordScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PaymentProvider>().loadByContract(widget.contractId);
+      final user = context.read<AuthProvider>().currentUser;
+      context.read<PaymentProvider>().loadByContract(
+            widget.contractId,
+            user: user,
+          );
     });
   }
 
@@ -278,9 +282,10 @@ class _PaymentRecordScreenState extends State<PaymentRecordScreen>
                             arguments: payment.id,
                           );
                           if (!context.mounted) return;
-                          context
-                              .read<PaymentProvider>()
-                              .loadByContract(widget.contractId);
+                          context.read<PaymentProvider>().loadByContract(
+                                widget.contractId,
+                                user: context.read<AuthProvider>().currentUser,
+                              );
                         }
                       : null,
                   onRegister: !isLandlord
@@ -292,9 +297,10 @@ class _PaymentRecordScreenState extends State<PaymentRecordScreen>
                             arguments: payment.id,
                           );
                           if (!context.mounted) return;
-                          context
-                              .read<PaymentProvider>()
-                              .loadByContract(widget.contractId);
+                          context.read<PaymentProvider>().loadByContract(
+                                widget.contractId,
+                                user: context.read<AuthProvider>().currentUser,
+                              );
                         }
                       : null,
                 ),

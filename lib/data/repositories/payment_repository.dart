@@ -3,7 +3,10 @@ import '../models/payment.dart';
 
 /// Contrato abstracto para pagos.
 abstract class PaymentRepository {
-  Future<List<Payment>> getPaymentsByContract(String contractId);
+  Future<List<Payment>> getPaymentsByContract(
+    String contractId, {
+    String? userId,
+  });
   Future<Payment?> getPaymentById(String paymentId);
   Future<List<Payment>> getPendingPayments({String? userId, String? role});
   Future<List<Payment>> getPaymentsPendingApproval(String landlordId);

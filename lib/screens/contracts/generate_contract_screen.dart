@@ -24,6 +24,8 @@ class GenerateContractScreen extends StatefulWidget {
 }
 
 class _GenerateContractScreenState extends State<GenerateContractScreen> {
+  static const _totalSteps = 4;
+
   int _step = 0;
   bool _loading = false;
 
@@ -51,10 +53,23 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
   DateTime _fechaInicio = DateTime.now();
   DateTime _fechaFin = DateTime.now().add(const Duration(days: 365));
 
+  final List<TextEditingController> _clauseTitleControllers = [];
+  final List<TextEditingController> _clauseContentControllers = [];
+
   @override
   void initState() {
     super.initState();
+    _initDefaultClauses();
     _prefillFromArgs();
+  }
+
+  void _initDefaultClauses() {
+    for (final clause in DefaultContractClauses.all) {
+      _clauseTitleControllers
+          .add(TextEditingController(text: clause.titulo));
+      _clauseContentControllers
+          .add(TextEditingController(text: clause.contenido));
+    }
   }
 
   void _prefillFromArgs() {
@@ -106,15 +121,60 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
     _arrendatarioEmailController.dispose();
     _canonController.dispose();
     _depositoController.dispose();
+    for (final c in _clauseTitleControllers) {
+      c.dispose();
+    }
+    for (final c in _clauseContentControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  void _next() {
-    if (_step < 2) {
-      setState(() => _step++);
-    } else {
-      _createContract();
+  void _addClause() {
+    setState(() {
+      _clauseTitleControllers.add(TextEditingController(text: 'Nueva cláusula'));
+      _clauseContentControllers.add(TextEditingController());
+    });
+  }
+
+  void _removeClause(int index) {
+    if (_clauseTitleControllers.length <= 1) return;
+    setState(() {
+      _clauseTitleControllers.removeAt(index).dispose();
+      _clauseContentControllers.removeAt(index).dispose();
+    });
+  }
+
+  List<ContractClause> _buildClauses() {
+    return List.generate(
+      _clauseTitleControllers.length,
+      (index) => ContractClause(
+        titulo: _clauseTitleControllers[index].text.trim(),
+        contenido: _clauseContentControllers[index].text.trim(),
+      ),
+    );
+  }
+
+  bool _validateClauses() {
+    final clauses = _buildClauses();
+    if (clauses.any((c) => c.titulo.isEmpty || c.contenido.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Completa el título y contenido de cada cláusula'),
+        ),
+      );
+      return false;
     }
+    return true;
+  }
+
+  void _next() {
+    if (_step < _totalSteps - 1) {
+      setState(() => _step++);
+      return;
+    }
+    if (!_validateClauses()) return;
+    _createContract();
   }
 
   Future<void> _createContract() async {
@@ -141,7 +201,7 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
       fechaInicio: _fechaInicio,
       fechaFin: _fechaFin,
       status: ContractStatus.activo,
-      clausulas: MockDataServiceClauses.defaultClauses,
+      clausulas: _buildClauses(),
     );
 
     final contractProvider = context.read<ContractProvider>();
@@ -182,7 +242,7 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(24),
-            child: StepIndicator(currentStep: _step, totalSteps: 3),
+            child: StepIndicator(currentStep: _step, totalSteps: _totalSteps),
           ),
           Expanded(
             child: SingleChildScrollView(
@@ -190,7 +250,8 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
               child: switch (_step) {
                 0 => _buildPropertyStep(),
                 1 => _buildPartiesStep(),
-                _ => _buildTermsStep(),
+                2 => _buildTermsStep(),
+                _ => _buildClausesStep(),
               },
             ),
           ),
@@ -209,7 +270,11 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : Text(_step < 2 ? 'Siguiente' : 'Generar contrato'),
+                      : Text(
+                          _step < _totalSteps - 1
+                              ? 'Siguiente'
+                              : 'Generar contrato',
+                        ),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton(
@@ -391,11 +456,91 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
       ],
     );
   }
+
+  Widget _buildClausesStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Cláusulas del contrato',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Revisa las cláusulas predeterminadas, edítalas o agrega nuevas.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 20),
+        ...List.generate(_clauseTitleControllers.length, (index) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Cláusula ${index + 1}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        if (_clauseTitleControllers.length > 1)
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                color: AppColors.error),
+                            tooltip: 'Eliminar cláusula',
+                            onPressed: () => _removeClause(index),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _clauseTitleControllers[index],
+                      decoration: const InputDecoration(
+                        labelText: 'Título',
+                        hintText: 'Ej: Objeto del contrato',
+                      ),
+                      textCapitalization: TextCapitalization.sentences,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _clauseContentControllers[index],
+                      decoration: const InputDecoration(
+                        labelText: 'Contenido',
+                        hintText: 'Describe la cláusula...',
+                        alignLabelWithHint: true,
+                      ),
+                      maxLines: 4,
+                      textCapitalization: TextCapitalization.sentences,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+        OutlinedButton.icon(
+          onPressed: _addClause,
+          icon: const Icon(Icons.add),
+          label: const Text('Agregar cláusula'),
+        ),
+      ],
+    );
+  }
 }
 
-/// Cláusulas por defecto reutilizables
-class MockDataServiceClauses {
-  static const defaultClauses = [
+/// Cláusulas predeterminadas del contrato de arriendo.
+class DefaultContractClauses {
+  DefaultContractClauses._();
+
+  static const all = [
     ContractClause(
       titulo: 'Objeto del contrato',
       contenido:

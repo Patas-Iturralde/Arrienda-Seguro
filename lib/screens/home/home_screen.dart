@@ -56,6 +56,12 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text('¡Hola, ${user.nombre}!'),
         actions: [
+          if (isTenant)
+            IconButton(
+              icon: const Icon(Icons.chat_bubble_outline),
+              tooltip: 'Conversaciones',
+              onPressed: () => Navigator.pushNamed(context, AppRoutes.chatList),
+            ),
           IconButton(
             icon: Badge(
               isLabelVisible: unread > 0,
@@ -260,6 +266,14 @@ class _HomeScreenState extends State<HomeScreen> {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.pushNamed(context, AppRoutes.calendar),
             ),
+            if (isTenant)
+              ListTile(
+                leading: const Icon(Icons.chat_bubble_outline,
+                    color: AppColors.primary),
+                title: const Text('Mis conversaciones'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.pushNamed(context, AppRoutes.chatList),
+              ),
             ListTile(
               leading: const Icon(Icons.folder_outlined, color: AppColors.primary),
               title: const Text('Documentos'),

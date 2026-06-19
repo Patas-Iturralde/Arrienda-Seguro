@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -42,6 +44,9 @@ Future<void> main() async {
     );
     if (!DefaultFirebaseOptions.currentPlatform.projectId.startsWith('YOUR_')) {
       firebaseEnabled = true;
+      if (kIsWeb) {
+        await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+      }
     }
   } catch (e) {
     debugPrint('Firebase no configurado, usando datos mock: $e');

@@ -19,6 +19,8 @@ import '../../data/repositories/payment_repository.dart';
 import '../../data/repositories/property_repository.dart';
 import '../../data/repositories/reminder_repository.dart';
 import '../../data/repositories/rental_request_repository.dart';
+import '../../data/repositories/firebase/firebase_contract_repository.dart';
+import '../../data/repositories/firebase/firebase_payment_repository.dart';
 import '../../data/repositories/firebase/firebase_rental_request_repository.dart';
 import '../../data/repositories/mock/mock_rental_request_repository.dart';
 import '../../data/services/mock_data_service.dart';
@@ -42,11 +44,13 @@ class ServiceLocator {
       ? FirebaseChatRepository()
       : MockChatRepository(mockData);
 
-  late final ContractRepository contractRepository =
-      MockContractRepository(mockData);
+  late final ContractRepository contractRepository = firebaseEnabled
+      ? FirebaseContractRepository()
+      : MockContractRepository(mockData);
 
-  late final PaymentRepository paymentRepository =
-      MockPaymentRepository(mockData);
+  late final PaymentRepository paymentRepository = firebaseEnabled
+      ? FirebasePaymentRepository()
+      : MockPaymentRepository(mockData);
 
   late final NotificationRepository notificationRepository =
       MockNotificationRepository(mockData);

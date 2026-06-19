@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../models/chat_message.dart';
 import '../../models/chat_room.dart';
@@ -14,18 +15,73 @@ class FirebaseChatRepository implements ChatRepository {
   CollectionReference<Map<String, dynamic>> get _rooms =>
       _firestore.collection('chat_rooms');
 
+  List<ChatRoom> _mapSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    return snapshot.docs
+        .map((doc) => ChatRoom.fromMap(doc.id, doc.data()))
+        .toList();
+  }
+
+  List<ChatRoom> _mergeRooms(List<ChatRoom> landlord, List<ChatRoom> tenant) {
+    final byId = <String, ChatRoom>{};
+    for (final room in [...landlord, ...tenant]) {
+      byId[room.id] = room;
+    }
+    final merged = byId.values.toList();
+    merged.sort((a, b) {
+      final aDate = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate = b.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bDate.compareTo(aDate);
+    });
+    return merged;
+  }
+
+  /// Dos queries simples (arrendador / arrendatario) en lugar de OR + orderBy,
+  /// que Firestore suele rechazar con PERMISSION_DENIED.
   @override
   Stream<List<ChatRoom>> watchRoomsForUser(String userId) {
-    return _rooms
-        .where(Filter.or(
-          Filter('arrendadorId', isEqualTo: userId),
-          Filter('arrendatarioId', isEqualTo: userId),
-        ))
-        .orderBy('lastMessageAt', descending: true)
+    final controller = StreamController<List<ChatRoom>>.broadcast();
+    var landlordRooms = <ChatRoom>[];
+    var tenantRooms = <ChatRoom>[];
+
+    void emit() {
+      if (controller.isClosed) return;
+      controller.add(_mergeRooms(landlordRooms, tenantRooms));
+    }
+
+    final landlordSub = _rooms
+        .where('arrendadorId', isEqualTo: userId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ChatRoom.fromMap(doc.id, doc.data()))
-            .toList());
+        .listen(
+      (snapshot) {
+        landlordRooms = _mapSnapshot(snapshot);
+        emit();
+      },
+      onError: (Object error, StackTrace stack) {
+        debugPrint('Error al leer chats como arrendador: $error');
+        if (!controller.isClosed) controller.addError(error, stack);
+      },
+    );
+
+    final tenantSub = _rooms
+        .where('arrendatarioId', isEqualTo: userId)
+        .snapshots()
+        .listen(
+      (snapshot) {
+        tenantRooms = _mapSnapshot(snapshot);
+        emit();
+      },
+      onError: (Object error, StackTrace stack) {
+        debugPrint('Error al leer chats como arrendatario: $error');
+        if (!controller.isClosed) controller.addError(error, stack);
+      },
+    );
+
+    controller.onCancel = () {
+      landlordSub.cancel();
+      tenantSub.cancel();
+    };
+
+    return controller.stream;
   }
 
   @override
@@ -51,6 +107,7 @@ class FirebaseChatRepository implements ChatRepository {
   }) async {
     final existing = await _rooms
         .where('propertyId', isEqualTo: propertyId)
+        .where('arrendadorId', isEqualTo: arrendadorId)
         .where('arrendatarioId', isEqualTo: arrendatarioId)
         .limit(1)
         .get();

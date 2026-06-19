@@ -43,7 +43,10 @@ class MockPaymentRepository implements PaymentRepository {
   }
 
   @override
-  Future<List<Payment>> getPaymentsByContract(String contractId) async {
+  Future<List<Payment>> getPaymentsByContract(
+    String contractId, {
+    String? userId,
+  }) async {
     return _byContract(contractId);
   }
 

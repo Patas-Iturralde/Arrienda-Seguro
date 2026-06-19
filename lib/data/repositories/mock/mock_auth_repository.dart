@@ -17,7 +17,10 @@ class MockAuthRepository implements AuthRepository {
   AppUser? get currentUser => _currentUser;
 
   @override
-  Stream<AppUser?> get authStateChanges => _controller.stream;
+  Stream<AppUser?> get authStateChanges async* {
+    yield _currentUser;
+    yield* _controller.stream;
+  }
 
   @override
   Future<AuthResult> signIn(String email, String password) async {

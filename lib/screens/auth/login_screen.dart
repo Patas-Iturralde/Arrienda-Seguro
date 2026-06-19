@@ -6,7 +6,6 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
 import '../../widgets/base64_image_picker.dart';
-import '../shell/main_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,10 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (result.isSuccess) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const MainShell()),
-      );
+      setState(() => _loading = false);
     } else {
       setState(() {
         _loading = false;
@@ -60,16 +56,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _openRegister() async {
-    final created = await Navigator.push<bool>(
+    await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => const RegisterScreen()),
     );
-    if (created == true && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const MainShell()),
-      );
-    }
   }
 
   @override
