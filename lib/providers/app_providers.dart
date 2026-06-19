@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../data/models/app_user.dart';
 import '../data/models/auth_result.dart';
 import '../data/models/contract.dart';
+import '../data/models/contract_status.dart';
 import '../data/models/payment.dart';
 import '../data/models/user_role.dart';
 import '../data/repositories/auth_repository.dart';
@@ -66,9 +67,10 @@ class AuthProvider extends ChangeNotifier {
 }
 
 class ContractProvider extends ChangeNotifier {
-  ContractProvider(this._repository);
+  ContractProvider(this._repository, this._paymentRepository);
 
   final ContractRepository _repository;
+  final PaymentRepository _paymentRepository;
 
   List<Contract> _contracts = [];
   bool _loading = false;
@@ -86,14 +88,27 @@ class ContractProvider extends ChangeNotifier {
       userId: user?.id,
       role: user?.role.name,
     );
+    await _ensurePaymentsForContracts();
     _loading = false;
     notifyListeners();
+  }
+
+  Future<void> _ensurePaymentsForContracts() async {
+    for (final contract in _contracts) {
+      if (contract.status == ContractStatus.finalizado) continue;
+      final existing =
+          await _paymentRepository.getPaymentsByContract(contract.id);
+      if (existing.isEmpty) {
+        await _paymentRepository.generateScheduleForContract(contract);
+      }
+    }
   }
 
   Future<Contract?> getById(String id) => _repository.getContractById(id);
 
   Future<Contract> createContract(Contract contract) async {
     final created = await _repository.createContract(contract);
+    await _paymentRepository.generateScheduleForContract(created);
     await loadContracts(ServiceLocator.instance.authRepository.currentUser);
     return created;
   }
@@ -116,23 +131,35 @@ class PaymentProvider extends ChangeNotifier {
   final PaymentRepository _repository;
 
   List<Payment> _payments = [];
+  List<Payment> _approvals = [];
   Payment? _nextPayment;
   int _pendingCount = 0;
 
   List<Payment> get payments => _payments;
+  List<Payment> get approvals => _approvals;
   Payment? get nextPayment => _nextPayment;
   int get pendingCount => _pendingCount;
 
   Future<void> loadDashboardData(AppUser? user) async {
-    _nextPayment = await _repository.getNextPayment(
-      userId: user?.id,
-      role: user?.role.name,
-    );
-    final pending = await _repository.getPendingPayments(
-      userId: user?.id,
-      role: user?.role.name,
-    );
-    _pendingCount = pending.length;
+    if (user == null) return;
+
+    if (user.role == UserRole.arrendador) {
+      _approvals =
+          await _repository.getPaymentsPendingApproval(user.id);
+      _pendingCount = _approvals.length;
+      _nextPayment = _approvals.isNotEmpty ? _approvals.first : null;
+    } else {
+      _approvals = [];
+      _nextPayment = await _repository.getNextPayment(
+        userId: user.id,
+        role: user.role.name,
+      );
+      final pending = await _repository.getPendingPayments(
+        userId: user.id,
+        role: user.role.name,
+      );
+      _pendingCount = pending.length;
+    }
     notifyListeners();
   }
 
@@ -141,8 +168,39 @@ class PaymentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Payment> registerPayment(String paymentId) async {
-    final payment = await _repository.registerPayment(paymentId);
+  Future<List<Payment>> loadAllForUser(AppUser user) async {
+    final list = await _repository.getAllPaymentsForUser(
+      userId: user.id,
+      role: user.role.name,
+    );
+    _payments = list;
+    notifyListeners();
+    return list;
+  }
+
+  Future<Payment?> getPaymentById(String paymentId) =>
+      _repository.getPaymentById(paymentId);
+
+  Future<Payment> submitPayment(
+    String paymentId, {
+    required String comprobanteBase64,
+  }) async {
+    final payment = await _repository.submitPayment(
+      paymentId,
+      comprobanteBase64: comprobanteBase64,
+    );
+    notifyListeners();
+    return payment;
+  }
+
+  Future<Payment> approvePayment(String paymentId) async {
+    final payment = await _repository.approvePayment(paymentId);
+    notifyListeners();
+    return payment;
+  }
+
+  Future<Payment> rejectPayment(String paymentId, {String? motivo}) async {
+    final payment = await _repository.rejectPayment(paymentId, motivo: motivo);
     notifyListeners();
     return payment;
   }

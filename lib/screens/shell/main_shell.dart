@@ -6,10 +6,10 @@ import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
 import '../../routing/app_routes.dart';
 import '../contracts/contracts_screen.dart';
+import '../home/home_screen.dart';
 import '../payments/payments_screen.dart';
 import '../profile/profile_screen.dart';
 import '../properties/landlord_properties_screen.dart';
-import '../properties/properties_browse_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key, this.initialIndex = 0});
@@ -29,42 +29,54 @@ class _MainShellState extends State<MainShell> {
     _currentIndex = widget.initialIndex;
   }
 
-  bool _hasFab(UserRole? role) =>
-      role == UserRole.arrendador || role == UserRole.admin;
+  void _onFabTap(UserRole? role) {
+    switch (role) {
+      case UserRole.arrendador:
+        Navigator.pushNamed(context, AppRoutes.propertyForm);
+      case UserRole.arrendatario:
+        Navigator.pushNamed(context, AppRoutes.properties);
+      case UserRole.admin:
+        Navigator.pushNamed(context, AppRoutes.generateContract);
+      default:
+        break;
+    }
+  }
 
   void _onTap(int index, UserRole? role) {
-    if (_hasFab(role) && index == 2) {
-      if (role == UserRole.arrendador) {
-        Navigator.pushNamed(context, AppRoutes.propertyForm);
-      } else {
-        Navigator.pushNamed(context, AppRoutes.generateContract);
-      }
+    if (index == 2) {
+      _onFabTap(role);
       return;
     }
     setState(() => _currentIndex = index);
+    _reloadTabData(index);
   }
 
-  int _bodyIndex(int navIndex, UserRole? role) {
-    if (!_hasFab(role)) return navIndex;
-    if (navIndex <= 1) return navIndex;
-    if (navIndex == 2) return 0;
-    return navIndex - 1;
+  void _reloadTabData(int index) {
+    final user = context.read<AuthProvider>().currentUser;
+    if (user == null) return;
+
+    if (index == 0 || index == 1 || index == 3) {
+      context.read<ContractProvider>().loadContracts(user);
+    }
+    if (index == 0 || index == 3) {
+      context.read<PaymentProvider>().loadDashboardData(user);
+    }
   }
 
   List<Widget> _screens(UserRole? role) {
-    final isLandlord = role == UserRole.arrendador;
-    final mainScreen = isLandlord
-        ? const LandlordPropertiesScreen()
-        : const PropertiesBrowseScreen();
-
     if (role == UserRole.arrendatario) {
       return const [
-        PropertiesBrowseScreen(),
+        HomeScreen(),
         ContractsScreen(),
+        SizedBox.shrink(),
         PaymentsScreen(),
         ProfileScreen(),
       ];
     }
+
+    final mainScreen = role == UserRole.arrendador
+        ? const LandlordPropertiesScreen()
+        : const HomeScreen();
 
     return [
       mainScreen,
@@ -77,17 +89,40 @@ class _MainShellState extends State<MainShell> {
 
   List<BottomNavigationBarItem> _navItems(UserRole? role) {
     final isLandlord = role == UserRole.arrendador;
+    final isTenant = role == UserRole.arrendatario;
 
-    final exploreItem = BottomNavigationBarItem(
-      icon: Icon(isLandlord ? Icons.apartment_outlined : Icons.search),
-      activeIcon: Icon(isLandlord ? Icons.apartment : Icons.search),
-      label: isLandlord ? 'Mis deptos' : 'Explorar',
-    );
+    final firstItem = isTenant || role == UserRole.admin
+        ? const BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Inicio',
+          )
+        : BottomNavigationBarItem(
+            icon: Icon(Icons.apartment_outlined),
+            activeIcon: const Icon(Icons.apartment),
+            label: isLandlord ? 'Mis inmuebles' : 'Inicio',
+          );
 
     const contractsItem = BottomNavigationBarItem(
       icon: Icon(Icons.description_outlined),
       activeIcon: Icon(Icons.description),
       label: 'Contratos',
+    );
+
+    final fabItem = BottomNavigationBarItem(
+      icon: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: const BoxDecoration(
+          color: AppColors.primary,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          isTenant ? Icons.search : Icons.add,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+      label: '',
     );
 
     const paymentsItem = BottomNavigationBarItem(
@@ -102,42 +137,19 @@ class _MainShellState extends State<MainShell> {
       label: 'Perfil',
     );
 
-    if (role == UserRole.arrendatario) {
-      return [exploreItem, contractsItem, paymentsItem, profileItem];
-    }
-
-    return [
-      exploreItem,
-      contractsItem,
-      BottomNavigationBarItem(
-        icon: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: const BoxDecoration(
-            color: AppColors.primary,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            isLandlord ? Icons.add : Icons.add,
-            color: Colors.white,
-            size: 28,
-          ),
-        ),
-        label: '',
-      ),
-      paymentsItem,
-      profileItem,
-    ];
+    return [firstItem, contractsItem, fabItem, paymentsItem, profileItem];
   }
 
   @override
   Widget build(BuildContext context) {
     final role = context.watch<AuthProvider>().currentUser?.role;
     final screens = _screens(role);
-    final bodyIndex = _bodyIndex(_currentIndex, role).clamp(0, screens.length - 1);
+    final navItems = _navItems(role);
+    final screenIndex = _currentIndex.clamp(0, screens.length - 1);
 
     return Scaffold(
       body: IndexedStack(
-        index: bodyIndex,
+        index: screenIndex,
         children: screens,
       ),
       bottomNavigationBar: Container(
@@ -151,10 +163,10 @@ class _MainShellState extends State<MainShell> {
           ],
         ),
         child: BottomNavigationBar(
-          currentIndex: _currentIndex.clamp(0, _navItems(role).length - 1),
+          currentIndex: _currentIndex.clamp(0, navItems.length - 1),
           onTap: (index) => _onTap(index, role),
           type: BottomNavigationBarType.fixed,
-          items: _navItems(role),
+          items: navItems,
         ),
       ),
     );

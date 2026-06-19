@@ -1,9 +1,13 @@
+import '../constants/property_types.dart';
+import '../constants/ecuador_locations.dart';
+
 class Property {
   const Property({
     required this.id,
     required this.nombre,
     required this.descripcion,
     required this.direccion,
+    required this.provincia,
     required this.ciudad,
     required this.valor,
     required this.arrendadorId,
@@ -20,6 +24,7 @@ class Property {
   final String nombre;
   final String descripcion;
   final String direccion;
+  final String provincia;
   final String ciudad;
   final double valor;
   final String arrendadorId;
@@ -33,7 +38,7 @@ class Property {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  String get direccionCompleta => '$direccion, $ciudad';
+  String get direccionCompleta => '$direccion, $ciudad, $provincia';
   String? get fotoPrincipal => fotos.isNotEmpty ? fotos.first : null;
 
   Property copyWith({
@@ -41,6 +46,7 @@ class Property {
     String? nombre,
     String? descripcion,
     String? direccion,
+    String? provincia,
     String? ciudad,
     double? valor,
     String? arrendadorId,
@@ -57,6 +63,7 @@ class Property {
       nombre: nombre ?? this.nombre,
       descripcion: descripcion ?? this.descripcion,
       direccion: direccion ?? this.direccion,
+      provincia: provincia ?? this.provincia,
       ciudad: ciudad ?? this.ciudad,
       valor: valor ?? this.valor,
       arrendadorId: arrendadorId ?? this.arrendadorId,
@@ -74,6 +81,7 @@ class Property {
         'nombre': nombre,
         'descripcion': descripcion,
         'direccion': direccion,
+        'provincia': provincia,
         'ciudad': ciudad,
         'valor': valor,
         'arrendadorId': arrendadorId,
@@ -87,15 +95,23 @@ class Property {
       };
 
   factory Property.fromMap(String id, Map<String, dynamic> map) {
+    final ciudad = map['ciudad'] as String? ?? '';
+    final provincia = EcuadorLocations.resolveProvincia(
+          provincia: map['provincia'] as String?,
+          ciudad: ciudad,
+        ) ??
+        '';
+
     return Property(
       id: id,
       nombre: map['nombre'] as String? ?? '',
       descripcion: map['descripcion'] as String? ?? '',
       direccion: map['direccion'] as String? ?? '',
-      ciudad: map['ciudad'] as String? ?? '',
+      provincia: provincia,
+      ciudad: ciudad,
       valor: (map['valor'] as num?)?.toDouble() ?? 0,
       arrendadorId: map['arrendadorId'] as String? ?? '',
-      tipo: map['tipo'] as String? ?? 'Departamento',
+      tipo: PropertyTypes.normalize(map['tipo'] as String?),
       fotos: List<String>.from(map['fotos'] as List? ?? []),
       servicios: List<String>.from(map['servicios'] as List? ?? []),
       disponible: map['disponible'] as bool? ?? true,

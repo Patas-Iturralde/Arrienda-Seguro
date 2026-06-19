@@ -17,6 +17,7 @@ class AppDocument {
     this.contractId,
     this.paymentId,
     this.url,
+    this.comprobanteBase64,
   });
 
   final String id;
@@ -27,6 +28,7 @@ class AppDocument {
   final String? contractId;
   final String? paymentId;
   final String? url;
+  final String? comprobanteBase64;
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -37,6 +39,7 @@ class AppDocument {
         'contractId': contractId,
         'paymentId': paymentId,
         'url': url,
+        'comprobanteBase64': comprobanteBase64,
       };
 
   factory AppDocument.fromMap(Map<String, dynamic> map) {
@@ -49,6 +52,7 @@ class AppDocument {
       contractId: map['contractId'] as String?,
       paymentId: map['paymentId'] as String?,
       url: map['url'] as String?,
+      comprobanteBase64: map['comprobanteBase64'] as String?,
     );
   }
 }

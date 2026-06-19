@@ -125,6 +125,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: 'Ayuda y soporte',
             onTap: () => _showPlaceholder(context, 'Ayuda y soporte'),
           ),
+          if (user.role == UserRole.arrendatario)
+            _MenuTile(
+              icon: Icons.receipt_long_outlined,
+              title: 'Registrar pago',
+              onTap: () => Navigator.pushNamed(
+                context,
+                AppRoutes.tenantRegisterPayment,
+              ),
+            ),
           if (user.role == UserRole.admin || user.role == UserRole.arrendador)
             _MenuTile(
               icon: Icons.description_outlined,

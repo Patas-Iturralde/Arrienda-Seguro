@@ -4,14 +4,20 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
+import '../../data/constants/property_types.dart';
 import '../../data/models/contract.dart';
+import '../../core/di/service_locator.dart';
+import '../../data/models/rental_request.dart';
+import '../../data/models/contract_generation_args.dart';
 import '../../data/models/contract_status.dart';
 import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
 import '../../widgets/step_indicator.dart';
 
 class GenerateContractScreen extends StatefulWidget {
-  const GenerateContractScreen({super.key});
+  const GenerateContractScreen({super.key, this.args});
+
+  final ContractGenerationArgs? args;
 
   @override
   State<GenerateContractScreen> createState() => _GenerateContractScreenState();
@@ -21,7 +27,11 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
   int _step = 0;
   bool _loading = false;
 
-  final _tipoController = TextEditingController(text: 'Apartamento');
+  String? _propertyId;
+  String? _arrendadorId;
+  String? _arrendatarioId;
+
+  String _selectedTipo = PropertyTypes.all.first;
   final _direccionController = TextEditingController();
   final _ciudadController = TextEditingController();
   final _nombreInmuebleController = TextEditingController();
@@ -42,8 +52,47 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
   DateTime _fechaFin = DateTime.now().add(const Duration(days: 365));
 
   @override
+  void initState() {
+    super.initState();
+    _prefillFromArgs();
+  }
+
+  void _prefillFromArgs() {
+    final args = widget.args;
+    if (args == null) return;
+
+    _propertyId = args.propertyId;
+    _arrendadorId = args.arrendadorId;
+    _arrendatarioId = args.arrendatarioId;
+
+    _selectedTipo = _resolvePropertyTipo(args.propertyTipo);
+    _nombreInmuebleController.text = args.propertyName;
+    _direccionController.text = args.direccion;
+    _ciudadController.text = args.ciudad;
+
+    _arrendadorNombreController.text = args.arrendadorNombre;
+    _arrendadorApellidoController.text = args.arrendadorApellido;
+    _arrendadorCedulaController.text = args.arrendadorCedula;
+    _arrendadorEmailController.text = args.arrendadorEmail;
+
+    _arrendatarioNombreController.text = args.arrendatarioNombre;
+    _arrendatarioApellidoController.text = args.arrendatarioApellido;
+    _arrendatarioCedulaController.text = args.arrendatarioCedula;
+    _arrendatarioEmailController.text = args.arrendatarioEmail;
+
+    _canonController.text = args.canonMensual.toStringAsFixed(0);
+    _depositoController.text = args.canonMensual.toStringAsFixed(0);
+  }
+
+  String _resolvePropertyTipo(String? tipo) {
+    final normalized = PropertyTypes.normalize(tipo);
+    if (PropertyTypes.all.contains(normalized)) return normalized;
+    if (tipo?.trim().toLowerCase() == 'apartamento') return 'Departamento';
+    return PropertyTypes.all.first;
+  }
+
+  @override
   void dispose() {
-    _tipoController.dispose();
     _direccionController.dispose();
     _ciudadController.dispose();
     _nombreInmuebleController.dispose();
@@ -79,9 +128,10 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
 
     final contract = Contract(
       id: const Uuid().v4(),
-      propertyId: const Uuid().v4(),
-      arrendadorId: user.role == UserRole.arrendador ? user.id : 'arrendador-1',
-      arrendatarioId: 'arrendatario-new',
+      propertyId: _propertyId ?? const Uuid().v4(),
+      arrendadorId: _arrendadorId ??
+          (user.role == UserRole.arrendador ? user.id : 'arrendador-1'),
+      arrendatarioId: _arrendatarioId ?? 'arrendatario-new',
       propertyName: _nombreInmuebleController.text,
       arrendadorName: arrendadorName,
       arrendatarioName: arrendatarioName,
@@ -94,12 +144,26 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
       clausulas: MockDataServiceClauses.defaultClauses,
     );
 
-    await context.read<ContractProvider>().createContract(contract);
+    final contractProvider = context.read<ContractProvider>();
+    final paymentProvider = context.read<PaymentProvider>();
+
+    await contractProvider.createContract(contract);
+    await paymentProvider.loadDashboardData(user);
+
+    final rentalRequestId = widget.args?.rentalRequestId;
+    if (rentalRequestId != null) {
+      await ServiceLocator.instance.rentalRequestRepository.updateStatus(
+        rentalRequestId,
+        RentalRequestStatus.contratoGenerado,
+      );
+    }
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Contrato generado exitosamente'),
+        content: Text(
+          'Contrato generado. Se creó el calendario de pagos mensuales.',
+        ),
         backgroundColor: AppColors.success,
       ),
     );
@@ -109,7 +173,11 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Generar Contrato')),
+      appBar: AppBar(
+        title: Text(
+          widget.args != null ? 'Contrato de arriendo' : 'Generar Contrato',
+        ),
+      ),
       body: Column(
         children: [
           Padding(
@@ -174,12 +242,15 @@ class _GenerateContractScreenState extends State<GenerateContractScreen> {
         ),
         const SizedBox(height: 24),
         DropdownButtonFormField<String>(
-          initialValue: _tipoController.text,
+          key: ValueKey(_selectedTipo),
+          initialValue: _selectedTipo,
           decoration: const InputDecoration(labelText: 'Tipo de inmueble'),
-          items: ['Apartamento', 'Casa', 'Local comercial', 'Oficina']
+          items: PropertyTypes.all
               .map((t) => DropdownMenuItem(value: t, child: Text(t)))
               .toList(),
-          onChanged: (v) => _tipoController.text = v ?? 'Apartamento',
+          onChanged: (v) {
+            if (v != null) setState(() => _selectedTipo = v);
+          },
         ),
         const SizedBox(height: 16),
         TextField(

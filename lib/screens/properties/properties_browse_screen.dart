@@ -38,13 +38,14 @@ class _PropertiesBrowseScreenState extends State<PropertiesBrowseScreen> {
       final q = _search.toLowerCase();
       return p.nombre.toLowerCase().contains(q) ||
           p.ciudad.toLowerCase().contains(q) ||
+          p.provincia.toLowerCase().contains(q) ||
           p.direccion.toLowerCase().contains(q);
     }).toList();
 
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: const Text('Departamentos'),
+        title: const Text('Inmuebles'),
         actions: [
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline),
@@ -60,7 +61,7 @@ class _PropertiesBrowseScreenState extends State<PropertiesBrowseScreen> {
               onChanged: (v) => setState(() => _search = v),
               style: const TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
-                hintText: 'Buscar por nombre o ciudad...',
+                hintText: 'Buscar por nombre, ciudad o provincia...',
                 filled: true,
                 fillColor: Colors.white,
                 prefixIcon: const Icon(Icons.search),

@@ -15,7 +15,6 @@ class FirebasePropertyRepository implements PropertyRepository {
   Stream<List<Property>> watchAvailableProperties() {
     return _collection
         .where('disponible', isEqualTo: true)
-        .orderBy('updatedAt', descending: true)
         .snapshots()
         .map(_mapSnapshot);
   }
@@ -24,32 +23,35 @@ class FirebasePropertyRepository implements PropertyRepository {
   Stream<List<Property>> watchPropertiesByLandlord(String arrendadorId) {
     return _collection
         .where('arrendadorId', isEqualTo: arrendadorId)
-        .orderBy('updatedAt', descending: true)
         .snapshots()
         .map(_mapSnapshot);
   }
 
   List<Property> _mapSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
-    return snapshot.docs
+    final list = snapshot.docs
         .map((doc) => Property.fromMap(doc.id, doc.data()))
         .toList();
+    list.sort(_compareByUpdatedAt);
+    return list;
+  }
+
+  int _compareByUpdatedAt(Property a, Property b) {
+    final aDate = a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final bDate = b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    return bDate.compareTo(aDate);
   }
 
   @override
   Future<List<Property>> getAvailableProperties() async {
-    final snapshot = await _collection
-        .where('disponible', isEqualTo: true)
-        .orderBy('updatedAt', descending: true)
-        .get();
+    final snapshot =
+        await _collection.where('disponible', isEqualTo: true).get();
     return _mapSnapshot(snapshot);
   }
 
   @override
   Future<List<Property>> getPropertiesByLandlord(String arrendadorId) async {
-    final snapshot = await _collection
-        .where('arrendadorId', isEqualTo: arrendadorId)
-        .orderBy('updatedAt', descending: true)
-        .get();
+    final snapshot =
+        await _collection.where('arrendadorId', isEqualTo: arrendadorId).get();
     return _mapSnapshot(snapshot);
   }
 

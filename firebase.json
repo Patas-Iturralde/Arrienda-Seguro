@@ -1,1 +1,24 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"arrienda-seguro-d3d45","appId":"1:271119233724:android:9772de2414dc1a3dde56b9","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"arrienda-seguro-d3d45","configurations":{"android":"1:271119233724:android:9772de2414dc1a3dde56b9"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "arrienda-seguro-d3d45",
+          "appId": "1:271119233724:android:9772de2414dc1a3dde56b9",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "arrienda-seguro-d3d45",
+          "configurations": {
+            "android": "1:271119233724:android:9772de2414dc1a3dde56b9"
+          }
+        }
+      }
+    }
+  }
+}

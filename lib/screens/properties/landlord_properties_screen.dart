@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/di/service_locator.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/models/rental_request.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/property_provider.dart';
 import '../../routing/app_routes.dart';
@@ -16,6 +18,8 @@ class LandlordPropertiesScreen extends StatefulWidget {
 }
 
 class _LandlordPropertiesScreenState extends State<LandlordPropertiesScreen> {
+  int _pendingRequests = 0;
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +32,18 @@ class _LandlordPropertiesScreenState extends State<LandlordPropertiesScreen> {
     final provider = context.read<PropertyProvider>();
     provider.watchByLandlord(user.id);
     provider.loadByLandlord(user.id);
+    _loadPendingRequests(user.id);
+  }
+
+  Future<void> _loadPendingRequests(String landlordId) async {
+    final requests = await ServiceLocator.instance.rentalRequestRepository
+        .getByLandlord(landlordId);
+    if (!mounted) return;
+    setState(() {
+      _pendingRequests = requests
+          .where((r) => r.status == RentalRequestStatus.pendiente)
+          .length;
+    });
   }
 
   @override
@@ -38,8 +54,22 @@ class _LandlordPropertiesScreenState extends State<LandlordPropertiesScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: const Text('Mis departamentos'),
+        title: const Text('Mis inmuebles'),
         actions: [
+          IconButton(
+            icon: Badge(
+              isLabelVisible: _pendingRequests > 0,
+              label: Text('$_pendingRequests'),
+              child: const Icon(Icons.inbox_outlined),
+            ),
+            tooltip: 'Solicitudes de arriendo',
+            onPressed: () async {
+              final landlordId = context.read<AuthProvider>().currentUser?.id;
+              await Navigator.pushNamed(context, AppRoutes.rentalRequests);
+              if (!mounted || landlordId == null) return;
+              _loadPendingRequests(landlordId);
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline),
             tooltip: 'Conversaciones',
@@ -47,7 +77,7 @@ class _LandlordPropertiesScreenState extends State<LandlordPropertiesScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.add),
-            tooltip: 'Nuevo departamento',
+            tooltip: 'Nuevo inmueble',
             onPressed: () async {
               await Navigator.pushNamed(context, AppRoutes.propertyForm);
               _load();
@@ -132,7 +162,7 @@ class _LandlordPropertiesScreenState extends State<LandlordPropertiesScreen> {
         },
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add),
-        label: const Text('Nuevo departamento'),
+        label: const Text('Nuevo inmueble'),
       ),
     );
   }

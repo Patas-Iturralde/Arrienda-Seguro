@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../data/constants/ecuador_locations.dart';
+import '../../data/constants/property_types.dart';
 import '../../data/models/property.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/property_provider.dart';
@@ -22,15 +24,19 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
   late final TextEditingController _nombreController;
   late final TextEditingController _descripcionController;
   late final TextEditingController _direccionController;
-  late final TextEditingController _ciudadController;
   late final TextEditingController _valorController;
-  late final TextEditingController _tipoController;
   late final TextEditingController _serviciosController;
   late List<String> _fotosBase64;
   late bool _disponible;
+  late String _tipo;
+  String? _provincia;
+  String? _ciudad;
   bool _saving = false;
 
   bool get _isEditing => widget.property != null;
+
+  List<String> get _ciudadesDisponibles =>
+      _provincia != null ? EcuadorLocations.ciudadesDe(_provincia!) : [];
 
   @override
   void initState() {
@@ -39,11 +45,22 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
     _nombreController = TextEditingController(text: p?.nombre ?? '');
     _descripcionController = TextEditingController(text: p?.descripcion ?? '');
     _direccionController = TextEditingController(text: p?.direccion ?? '');
-    _ciudadController = TextEditingController(text: p?.ciudad ?? '');
     _valorController = TextEditingController(
       text: p != null ? p.valor.toStringAsFixed(0) : '',
     );
-    _tipoController = TextEditingController(text: p?.tipo ?? 'Departamento');
+    _tipo = PropertyTypes.normalize(p?.tipo);
+    _provincia = p != null
+        ? EcuadorLocations.resolveProvincia(
+            provincia: p.provincia.isNotEmpty ? p.provincia : null,
+            ciudad: p.ciudad,
+          )
+        : null;
+    _ciudad = p != null
+        ? EcuadorLocations.resolveCiudad(
+            provincia: _provincia,
+            ciudad: p.ciudad,
+          )
+        : null;
     _fotosBase64 = List<String>.from(p?.fotos ?? []);
     _serviciosController =
         TextEditingController(text: p?.servicios.join('\n') ?? '');
@@ -55,22 +72,20 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
     _nombreController.dispose();
     _descripcionController.dispose();
     _direccionController.dispose();
-    _ciudadController.dispose();
     _valorController.dispose();
-    _tipoController.dispose();
     _serviciosController.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_provincia == null || _ciudad == null) return;
 
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return;
 
     setState(() => _saving = true);
 
-    final fotos = _fotosBase64;
     final servicios = _serviciosController.text
         .split('\n')
         .map((s) => s.trim())
@@ -82,12 +97,13 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
       nombre: _nombreController.text.trim(),
       descripcion: _descripcionController.text.trim(),
       direccion: _direccionController.text.trim(),
-      ciudad: _ciudadController.text.trim(),
+      provincia: _provincia!,
+      ciudad: _ciudad!,
       valor: double.parse(_valorController.text.trim()),
       arrendadorId: user.id,
       arrendadorNombre: user.nombreCompleto,
-      tipo: _tipoController.text.trim(),
-      fotos: fotos,
+      tipo: _tipo,
+      fotos: _fotosBase64,
       servicios: servicios,
       disponible: _disponible,
     );
@@ -113,7 +129,7 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Editar departamento' : 'Nuevo departamento'),
+        title: Text(_isEditing ? 'Editar inmueble' : 'Nuevo inmueble'),
       ),
       body: Form(
         key: _formKey,
@@ -124,17 +140,37 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
               controller: _nombreController,
               decoration: const InputDecoration(
                 labelText: 'Nombre del lugar *',
-                hintText: 'Ej: Apartamento moderno en Chapinero',
+                hintText: 'Ej: Casa familiar en Cumbayá',
               ),
               validator: (v) =>
                   v == null || v.trim().isEmpty ? 'Requerido' : null,
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: PropertyTypes.all.contains(_tipo) ? _tipo : null,
+              decoration: const InputDecoration(
+                labelText: 'Tipo de inmueble *',
+              ),
+              items: PropertyTypes.all
+                  .map(
+                    (tipo) => DropdownMenuItem(
+                      value: tipo,
+                      child: Text(tipo),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) setState(() => _tipo = v);
+              },
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'Selecciona un tipo' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _valorController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Valor del departamento (mensual) *',
+                labelText: 'Valor del arriendo (mensual) *',
                 prefixText: '\$ ',
               ),
               validator: (v) {
@@ -159,25 +195,63 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
               controller: _direccionController,
               decoration: const InputDecoration(
                 labelText: 'Dirección *',
+                hintText: 'Calle, número, sector',
               ),
               validator: (v) =>
                   v == null || v.trim().isEmpty ? 'Requerido' : null,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _ciudadController,
+            DropdownButtonFormField<String>(
+              initialValue: _provincia,
               decoration: const InputDecoration(
+                labelText: 'Provincia *',
+              ),
+              hint: const Text('Selecciona una provincia'),
+              items: EcuadorLocations.provincias
+                  .map(
+                    (provincia) => DropdownMenuItem(
+                      value: provincia,
+                      child: Text(provincia),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) {
+                setState(() {
+                  _provincia = v;
+                  _ciudad = null;
+                });
+              },
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'Selecciona una provincia' : null,
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _ciudad != null &&
+                      _ciudadesDisponibles.contains(_ciudad)
+                  ? _ciudad
+                  : null,
+              decoration: InputDecoration(
                 labelText: 'Ciudad *',
+                hintText: _provincia == null
+                    ? 'Primero selecciona una provincia'
+                    : 'Selecciona una ciudad',
               ),
-              validator: (v) =>
-                  v == null || v.trim().isEmpty ? 'Requerido' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _tipoController,
-              decoration: const InputDecoration(
-                labelText: 'Tipo de inmueble',
-              ),
+              items: _ciudadesDisponibles
+                  .map(
+                    (ciudad) => DropdownMenuItem(
+                      value: ciudad,
+                      child: Text(ciudad),
+                    ),
+                  )
+                  .toList(),
+              onChanged: _provincia == null
+                  ? null
+                  : (v) => setState(() => _ciudad = v),
+              validator: (v) {
+                if (_provincia == null) return 'Selecciona una provincia';
+                if (v == null || v.isEmpty) return 'Selecciona una ciudad';
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             Base64ImagePickerField(
@@ -199,7 +273,7 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
               contentPadding: EdgeInsets.zero,
               title: const Text('Disponible'),
               subtitle: const Text(
-                'Los arrendatarios solo ven departamentos disponibles',
+                'Los arrendatarios solo ven inmuebles disponibles',
               ),
               value: _disponible,
               activeTrackColor: AppColors.primaryLight,
@@ -221,7 +295,7 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : Text(_isEditing ? 'Guardar cambios' : 'Publicar departamento'),
+                  : Text(_isEditing ? 'Guardar cambios' : 'Publicar inmueble'),
             ),
           ],
         ),

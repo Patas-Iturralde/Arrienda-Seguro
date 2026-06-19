@@ -8,6 +8,7 @@ import '../models/contract_status.dart';
 import '../models/payment.dart';
 import '../models/payment_status.dart';
 import '../models/property.dart';
+import '../models/rental_request.dart';
 import '../models/reminder.dart';
 import '../models/user_role.dart';
 
@@ -58,15 +59,16 @@ class MockDataService {
   final properties = <Property>[
     Property(
       id: 'prop-1',
-      nombre: 'Apartamento moderno en Chapinero',
+      nombre: 'Departamento moderno en Quito',
       descripcion:
-          'Amplio apartamento de 85 m² con excelente iluminación, cocina integral y balcón. Ideal para parejas o profesionales.',
-      direccion: 'Calle 45 #12-34',
-      ciudad: 'Bogotá',
-      valor: 1250000,
+          'Amplio departamento de 85 m² con excelente iluminación, cocina integral y balcón. Ideal para parejas o profesionales.',
+      direccion: 'Av. Amazonas N24-03',
+      provincia: 'Pichincha',
+      ciudad: 'Quito',
+      valor: 650,
       arrendadorId: 'arrendador-1',
       arrendadorNombre: 'Juan Pérez',
-      tipo: 'Apartamento',
+      tipo: 'Departamento',
       fotos: const [],
       servicios: const [
         'WiFi incluido',
@@ -80,12 +82,13 @@ class MockDataService {
     ),
     Property(
       id: 'prop-2',
-      nombre: 'Casa El Poblado con jardín',
+      nombre: 'Casa con jardín en Cuenca',
       descripcion:
           'Casa de 3 habitaciones en zona residencial, con jardín privado y cocina abierta. Perfecta para familias.',
-      direccion: 'Carrera 15 #78-90',
-      ciudad: 'Medellín',
-      valor: 2800000,
+      direccion: 'Av. Ordóñez Lasso',
+      provincia: 'Azuay',
+      ciudad: 'Cuenca',
+      valor: 480,
       arrendadorId: 'arrendador-1',
       arrendadorNombre: 'Juan Pérez',
       tipo: 'Casa',
@@ -102,12 +105,13 @@ class MockDataService {
     ),
     Property(
       id: 'prop-3',
-      nombre: 'Local comercial Av. 68',
+      nombre: 'Local comercial en Guayaquil',
       descripcion:
           'Local en primer piso con vitrina amplia, baño privado y acceso directo desde la avenida principal.',
-      direccion: 'Av. 68 #25-10',
-      ciudad: 'Bogotá',
-      valor: 3500000,
+      direccion: 'Av. Francisco de Orellana',
+      provincia: 'Guayas',
+      ciudad: 'Guayaquil',
+      valor: 900,
       arrendadorId: 'arrendador-1',
       arrendadorNombre: 'Juan Pérez',
       tipo: 'Local comercial',
@@ -123,12 +127,13 @@ class MockDataService {
     ),
     Property(
       id: 'prop-4',
-      nombre: 'Estudio céntrico en Quito',
+      nombre: 'Estudio céntrico en Ambato',
       descripcion:
-          'Estudio completamente amoblado cerca del centro histórico. Servicios incluidos y contrato flexible.',
-      direccion: 'Av. Amazonas N24-03',
-      ciudad: 'Quito',
-      valor: 450,
+          'Estudio completamente amoblado cerca del centro. Servicios incluidos y contrato flexible.',
+      direccion: 'Calle Montalvo',
+      provincia: 'Tungurahua',
+      ciudad: 'Ambato',
+      valor: 320,
       arrendadorId: 'arrendador-1',
       arrendadorNombre: 'Juan Pérez',
       tipo: 'Estudio',
@@ -146,6 +151,7 @@ class MockDataService {
 
   final chatRooms = <ChatRoom>[];
   final chatMessages = <String, List<ChatMessage>>{};
+  final rentalRequests = <RentalRequest>[];
 
   late final List<Contract> contracts = [
     Contract(

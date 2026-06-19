@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'core/config/app_config.dart';
 import 'core/di/service_locator.dart';
 import 'core/theme/app_theme.dart';
+import 'data/models/contract_generation_args.dart';
 import 'data/models/property.dart';
 import 'firebase_options.dart';
 import 'providers/app_providers.dart';
@@ -22,7 +23,11 @@ import 'screens/contracts/generate_contract_screen.dart';
 import 'screens/contracts/renew_contract_screen.dart';
 import 'screens/documents/documents_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
+import 'screens/payments/landlord_payment_review_screen.dart';
 import 'screens/payments/payments_screen.dart';
+import 'screens/payments/tenant_register_payment_screen.dart';
+import 'screens/properties/landlord_rental_requests_screen.dart';
+import 'screens/properties/properties_browse_screen.dart';
 import 'screens/properties/property_detail_screen.dart';
 import 'screens/properties/property_form_screen.dart';
 import 'screens/shell/main_shell.dart';
@@ -51,7 +56,10 @@ Future<void> main() async {
           create: (_) => AuthProvider(locator.authRepository),
         ),
         ChangeNotifierProvider(
-          create: (_) => ContractProvider(locator.contractRepository),
+          create: (_) => ContractProvider(
+            locator.contractRepository,
+            locator.paymentRepository,
+          ),
         ),
         ChangeNotifierProvider(
           create: (_) => PaymentProvider(locator.paymentRepository),
@@ -84,14 +92,21 @@ class ArriendaSeguroApp extends StatelessWidget {
       home: const AuthWrapper(),
       routes: {
         AppRoutes.login: (_) => const LoginScreen(),
-        AppRoutes.generateContract: (_) => const GenerateContractScreen(),
         AppRoutes.calendar: (_) => const CalendarScreen(),
         AppRoutes.notifications: (_) => const NotificationsScreen(),
         AppRoutes.propertyForm: (_) => const PropertyFormScreen(),
         AppRoutes.chatList: (_) => const ChatListScreen(),
+        AppRoutes.properties: (_) => const PropertiesBrowseScreen(),
+        AppRoutes.rentalRequests: (_) => const LandlordRentalRequestsScreen(),
       },
       onGenerateRoute: (settings) {
         switch (settings.name) {
+          case AppRoutes.generateContract:
+            return MaterialPageRoute(
+              builder: (_) => GenerateContractScreen(
+                args: settings.arguments as ContractGenerationArgs?,
+              ),
+            );
           case AppRoutes.contractDetail:
             return MaterialPageRoute(
               builder: (_) => ContractDetailScreen(
@@ -107,6 +122,16 @@ class ArriendaSeguroApp extends StatelessWidget {
           case AppRoutes.registerPayment:
             return MaterialPageRoute(
               builder: (_) => RegisterPaymentScreen(
+                paymentId: settings.arguments as String,
+              ),
+            );
+          case AppRoutes.tenantRegisterPayment:
+            return MaterialPageRoute(
+              builder: (_) => const TenantRegisterPaymentScreen(),
+            );
+          case AppRoutes.landlordPaymentReview:
+            return MaterialPageRoute(
+              builder: (_) => LandlordPaymentReviewScreen(
                 paymentId: settings.arguments as String,
               ),
             );

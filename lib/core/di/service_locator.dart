@@ -18,6 +18,9 @@ import '../../data/repositories/notification_repository.dart';
 import '../../data/repositories/payment_repository.dart';
 import '../../data/repositories/property_repository.dart';
 import '../../data/repositories/reminder_repository.dart';
+import '../../data/repositories/rental_request_repository.dart';
+import '../../data/repositories/firebase/firebase_rental_request_repository.dart';
+import '../../data/repositories/mock/mock_rental_request_repository.dart';
 import '../../data/services/mock_data_service.dart';
 
 /// Contenedor de dependencias con soporte Firebase o mock.
@@ -53,4 +56,8 @@ class ServiceLocator {
 
   late final ReminderRepository reminderRepository =
       MockReminderRepository(mockData);
+
+  late final RentalRequestRepository rentalRequestRepository = firebaseEnabled
+      ? FirebaseRentalRequestRepository()
+      : MockRentalRequestRepository(mockData);
 }

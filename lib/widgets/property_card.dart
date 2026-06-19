@@ -246,16 +246,24 @@ class PropertyCardActions extends StatelessWidget {
                   label: const Text('Editar'),
                 ),
               const Spacer(),
-              if (onChatTap != null)
+              if (onChatTap != null) ...[
                 OutlinedButton.icon(
                   onPressed: onChatTap,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 40),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
                   icon: const Icon(Icons.chat_bubble_outline, size: 18),
                   label: const Text('Chat'),
                 ),
-              const SizedBox(width: 8),
+                const SizedBox(width: 8),
+              ],
               ElevatedButton(
                 onPressed: property.disponible ? onViewTap : null,
                 style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(0, 40),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   disabledBackgroundColor: AppColors.divider,
                   disabledForegroundColor: AppColors.textSecondary,
                   padding: const EdgeInsets.symmetric(horizontal: 16),

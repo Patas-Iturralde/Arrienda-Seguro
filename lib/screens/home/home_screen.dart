@@ -5,6 +5,7 @@ import '../../core/di/service_locator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/models/contract_status.dart';
+import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
 import '../../routing/app_routes.dart';
 import '../../widgets/summary_card.dart';
@@ -42,9 +43,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final contracts = context.watch<ContractProvider>();
     final payments = context.watch<PaymentProvider>();
     final unread = ServiceLocator.instance.notificationRepository.unreadCount;
+    final isTenant = user.role == UserRole.arrendatario;
 
-    final activeCount =
-        contracts.contracts.where((c) => c.status != ContractStatus.finalizado).length;
+    final activeCount = contracts.contracts
+        .where((c) => c.status != ContractStatus.finalizado)
+        .length;
     final expiring = contracts.contracts
         .where((c) => c.status == ContractStatus.porVencer)
         .toList();
@@ -69,17 +72,66 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            Text(
+              'Bienvenido a Arrienda Seguro',
+              style: TextStyle(
+                fontSize: 15,
+                color: AppColors.textSecondary.withValues(alpha: 0.9),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (isTenant) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '¿Buscas un lugar?',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Explora inmuebles disponibles, contacta al arrendador '
+                        'y solicita tu arriendo.',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, AppRoutes.properties),
+                        icon: const Icon(Icons.search),
+                        label: const Text('Explorar inmuebles'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             SummaryCard(
               title: 'Resumen',
               children: [
-                _SummaryItem(
-                  icon: Icons.description,
-                  label: '$activeCount Contratos activos',
-                ),
-                const SizedBox(height: 8),
-                _SummaryItem(
-                  icon: Icons.pending_actions,
-                  label: '${payments.pendingCount} Pago${payments.pendingCount == 1 ? '' : 's'} pendiente${payments.pendingCount == 1 ? '' : 's'}',
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StatCard(
+                        value: '$activeCount',
+                        label: 'Contratos\nactivos',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatCard(
+                        value: '${payments.pendingCount}',
+                        label: 'Pago${payments.pendingCount == 1 ? '' : 's'}\npendiente${payments.pendingCount == 1 ? '' : 's'}',
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -98,7 +150,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Canon de arriendo',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Text(
                         Formatters.currency(payments.nextPayment!.monto),
                         style: const TextStyle(
@@ -109,17 +169,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Vence: ${Formatters.date(payments.nextPayment!.fechaVencimiento)}',
+                        Formatters.date(payments.nextPayment!.fechaVencimiento),
                         style: const TextStyle(color: AppColors.textSecondary),
                       ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pushNamed(
-                          context,
-                          AppRoutes.registerPayment,
-                          arguments: payments.nextPayment!.id,
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Toca un pago en Pagos → Pendientes para registrarlo',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
                         ),
-                        child: const Text('Registrar pago'),
                       ),
                     ],
                   ),
@@ -142,51 +201,53 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      ...expiring.map((c) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        c.propertyName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                      ...expiring.map(
+                        (c) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Contrato ${c.propertyName}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
                                       ),
-                                      Text(
-                                        'Vence: ${Formatters.date(c.fechaFin)}',
-                                        style: const TextStyle(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.successLight,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    'Faltan ${c.diasRestantes} días',
-                                    style: const TextStyle(
-                                      color: AppColors.success,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
                                     ),
+                                    Text(
+                                      'Vence el ${Formatters.date(c.fechaFin)}',
+                                      style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.successLight,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  'Faltan ${c.diasRestantes} días',
+                                  style: const TextStyle(
+                                    color: AppColors.success,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                              ],
-                            ),
-                          )),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -212,20 +273,42 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _SummaryItem extends StatelessWidget {
-  const _SummaryItem({required this.icon, required this.label});
+class _StatCard extends StatelessWidget {
+  const _StatCard({required this.value, required this.label});
 
-  final IconData icon;
+  final String value;
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: AppColors.primary, size: 20),
-        const SizedBox(width: 8),
-        Text(label, style: const TextStyle(fontSize: 15)),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

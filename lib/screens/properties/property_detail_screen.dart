@@ -5,6 +5,7 @@ import '../../core/di/service_locator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/models/property.dart';
+import '../../data/models/rental_request.dart';
 import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/property_provider.dart';
@@ -23,6 +24,8 @@ class PropertyDetailScreen extends StatefulWidget {
 class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   Property? _property;
   bool _loading = true;
+  bool _hasPendingRequest = false;
+  bool _submitting = false;
 
   @override
   void initState() {
@@ -31,11 +34,23 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   }
 
   Future<void> _load() async {
-    final property =
-        await context.read<PropertyProvider>().getById(widget.propertyId);
+    final propertyProvider = context.read<PropertyProvider>();
+    final authProvider = context.read<AuthProvider>();
+    final user = authProvider.currentUser;
+
+    final property = await propertyProvider.getById(widget.propertyId);
+    var hasPending = false;
+    if (user != null && user.role == UserRole.arrendatario) {
+      hasPending = await ServiceLocator.instance.rentalRequestRepository
+          .hasPendingRequest(
+        propertyId: widget.propertyId,
+        arrendatarioId: user.id,
+      );
+    }
     if (mounted) {
       setState(() {
         _property = property;
+        _hasPendingRequest = hasPending;
         _loading = false;
       });
     }
@@ -197,7 +212,9 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                             const Icon(Icons.check_circle,
                                 color: AppColors.success, size: 20),
                             const SizedBox(width: 8),
-                            Expanded(child: Text(s, style: const TextStyle(fontSize: 15))),
+                            Expanded(
+                              child: Text(s, style: const TextStyle(fontSize: 15)),
+                            ),
                           ],
                         ),
                       ),
@@ -233,22 +250,39 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => _openChat(property),
+                        onPressed: _submitting ? null : () => _openChat(property),
                         icon: const Icon(Icons.chat_bubble_outline),
                         label: const Text('Chat'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
+                          minimumSize: const Size(0, 48),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () => _openChat(property),
+                        onPressed: _submitting || _hasPendingRequest
+                            ? null
+                            : () => _solicitarArriendo(property),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
+                          minimumSize: const Size(0, 48),
                         ),
-                        child: const Text('Contactar >'),
+                        child: _submitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                _hasPendingRequest
+                                    ? 'Solicitud enviada'
+                                    : 'Solicitar arriendo',
+                              ),
                       ),
                     ),
                   ],
@@ -273,6 +307,109 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     );
     if (!mounted) return;
     Navigator.pushNamed(context, AppRoutes.chat, arguments: room.id);
+  }
+
+  Future<void> _solicitarArriendo(Property property) async {
+    final user = context.read<AuthProvider>().currentUser;
+    if (user == null) return;
+
+    final mensaje = await showDialog<String>(
+      context: context,
+      builder: (context) => const _SolicitudDialog(),
+    );
+    if (mensaje == null || !mounted) return;
+
+    setState(() => _submitting = true);
+    try {
+      await ServiceLocator.instance.rentalRequestRepository.create(
+        RentalRequest(
+          id: '',
+          propertyId: property.id,
+          propertyName: property.nombre,
+          arrendadorId: property.arrendadorId,
+          arrendatarioId: user.id,
+          arrendatarioName: user.nombreCompleto,
+          mensaje: mensaje.isEmpty ? null : mensaje,
+        ),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _hasPendingRequest = true;
+        _submitting = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Solicitud enviada. El arrendador revisará tu petición.',
+          ),
+        ),
+      );
+
+      await _openChat(property);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo enviar la solicitud: $e')),
+      );
+    }
+  }
+}
+
+class _SolicitudDialog extends StatefulWidget {
+  const _SolicitudDialog();
+
+  @override
+  State<_SolicitudDialog> createState() => _SolicitudDialogState();
+}
+
+class _SolicitudDialogState extends State<_SolicitudDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Solicitar arriendo'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Envía una solicitud al arrendador. Puedes incluir un mensaje '
+            'opcional.',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Mensaje (opcional)',
+              hintText: 'Me interesa arrendar este inmueble...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          child: const Text('Enviar solicitud'),
+        ),
+      ],
+    );
   }
 }
 

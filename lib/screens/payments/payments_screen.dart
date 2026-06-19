@@ -6,8 +6,10 @@ import '../../core/utils/formatters.dart';
 import '../../data/models/contract.dart';
 import '../../data/models/payment.dart';
 import '../../data/models/payment_status.dart';
+import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
 import '../../routing/app_routes.dart';
+import '../../widgets/comprobante_picker.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key});
@@ -20,92 +22,160 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = context.read<AuthProvider>();
-      context.read<ContractProvider>().loadContracts(auth.currentUser);
-      context.read<PaymentProvider>().loadDashboardData(auth.currentUser);
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reload());
+  }
+
+  Future<void> _reload() async {
+    final user = context.read<AuthProvider>().currentUser;
+    final contractProvider = context.read<ContractProvider>();
+    final paymentProvider = context.read<PaymentProvider>();
+    await contractProvider.loadContracts(user);
+    await paymentProvider.loadDashboardData(user);
+  }
+
+  String _paymentTitle(Payment payment) {
+    if (payment.esDeposito) return payment.concepto.label;
+    return Formatters.monthYear(payment.periodo);
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().currentUser;
     final payments = context.watch<PaymentProvider>();
     final contracts = context.watch<ContractProvider>().contracts;
+    final activeContracts =
+        contracts.where((c) => c.status.name != 'finalizado').toList();
+    final isLandlord = user?.role == UserRole.arrendador;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Pagos')),
-      body: payments.nextPayment == null && payments.pendingCount == 0
-          ? const Center(
-              child: Text(
-                'No hay pagos pendientes',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-            )
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (payments.nextPayment != null)
-                  Card(
-                    color: AppColors.mintCard,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Próximo pago pendiente',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+      body: RefreshIndicator(
+        onRefresh: _reload,
+        child: activeContracts.isEmpty && payments.pendingCount == 0
+            ? ListView(
+                children: const [
+                  SizedBox(height: 120),
+                  Icon(Icons.payments_outlined,
+                      size: 64, color: AppColors.textSecondary),
+                  SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      'No tienes contratos con pagos',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                ],
+              )
+            : ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (isLandlord && payments.approvals.isNotEmpty) ...[
+                    const Text(
+                      'Pagos por revisar',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    ...payments.approvals.map(
+                      (p) => Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        color: AppColors.warningLight,
+                        child: ListTile(
+                          title: Text(_paymentTitle(p)),
+                          subtitle: Text(
+                            '${Formatters.currency(p.monto)} · ${p.status.label}',
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            Formatters.currency(payments.nextPayment!.monto),
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          Text(
-                            'Vence: ${Formatters.date(payments.nextPayment!.fechaVencimiento)}',
-                          ),
-                          const SizedBox(height: 12),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pushNamed(
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () async {
+                            await Navigator.pushNamed(
                               context,
-                              AppRoutes.registerPayment,
-                              arguments: payments.nextPayment!.id,
+                              AppRoutes.landlordPaymentReview,
+                              arguments: p.id,
+                            );
+                            if (!context.mounted) return;
+                            await _reload();
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (!isLandlord && payments.nextPayment != null)
+                    Card(
+                      color: AppColors.mintCard,
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Próximo pago por registrar',
+                              style: TextStyle(fontWeight: FontWeight.w600),
                             ),
-                            child: const Text('Registrar pago'),
-                          ),
-                        ],
+                            const SizedBox(height: 4),
+                            Text(
+                              _paymentTitle(payments.nextPayment!),
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              Formatters.currency(payments.nextPayment!.monto),
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            Text(
+                              'Vence: ${Formatters.date(payments.nextPayment!.fechaVencimiento)}',
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Toca un pago pendiente en Pagos para registrarlo',
+                              style: TextStyle(color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (activeContracts.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        isLandlord
+                            ? 'No hay comprobantes pendientes de revisión.'
+                            : 'Revisa el estado de tus pagos en cada contrato.',
+                        style: const TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Contratos',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  ...activeContracts.map(
+                    (c) => Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        title: Text(c.propertyName),
+                        subtitle: Text(
+                          'Canon: ${Formatters.currency(c.canonMensual)}'
+                          '${c.deposito > 0 ? ' · Depósito: ${Formatters.currency(c.deposito)}' : ''}',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.paymentRecord,
+                          arguments: c.id,
+                        ),
                       ),
                     ),
                   ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Contratos',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                ...contracts
-                    .where((c) => c.status.name != 'finalizado')
-                    .map((c) => Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            title: Text(c.propertyName),
-                            subtitle: Text(
-                              'Canon: ${Formatters.currency(c.canonMensual)}',
-                            ),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              AppRoutes.paymentRecord,
-                              arguments: c.id,
-                            ),
-                          ),
-                        )),
-              ],
-            ),
+                ],
+              ),
+      ),
     );
   }
 }
@@ -140,6 +210,9 @@ class _PaymentRecordScreenState extends State<PaymentRecordScreen>
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().currentUser;
+    final isLandlord = user?.role == UserRole.arrendador;
+
     Contract? contract;
     for (final c in context.watch<ContractProvider>().contracts) {
       if (c.id == widget.contractId) {
@@ -152,9 +225,10 @@ class _PaymentRecordScreenState extends State<PaymentRecordScreen>
     final history =
         payments.where((p) => p.status == PaymentStatus.pagado).toList();
     final pending = payments
-        .where((p) =>
-            p.status == PaymentStatus.pendiente ||
-            p.status == PaymentStatus.vencido)
+        .where(
+          (p) =>
+              p.status != PaymentStatus.pagado,
+        )
         .toList();
 
     return Scaffold(
@@ -189,36 +263,79 @@ class _PaymentRecordScreenState extends State<PaymentRecordScreen>
               controller: _tabController,
               children: [
                 _PaymentList(payments: history, isHistory: true),
-                _PaymentList(payments: pending, isHistory: false),
+                _PaymentList(
+                  payments: pending,
+                  isHistory: false,
+                  isLandlord: isLandlord,
+                  onReview: isLandlord
+                      ? (payment) async {
+                          if (payment.status != PaymentStatus.enRevision) {
+                            return;
+                          }
+                          await Navigator.pushNamed(
+                            context,
+                            AppRoutes.landlordPaymentReview,
+                            arguments: payment.id,
+                          );
+                          if (!context.mounted) return;
+                          context
+                              .read<PaymentProvider>()
+                              .loadByContract(widget.contractId);
+                        }
+                      : null,
+                  onRegister: !isLandlord
+                      ? (payment) async {
+                          if (!payment.status.puedeRegistrar) return;
+                          await Navigator.pushNamed(
+                            context,
+                            AppRoutes.registerPayment,
+                            arguments: payment.id,
+                          );
+                          if (!context.mounted) return;
+                          context
+                              .read<PaymentProvider>()
+                              .loadByContract(widget.contractId);
+                        }
+                      : null,
+                ),
               ],
             ),
           ),
         ],
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ElevatedButton(
-            onPressed: pending.isEmpty
-                ? null
-                : () => Navigator.pushNamed(
-                      context,
-                      AppRoutes.registerPayment,
-                      arguments: pending.first.id,
-                    ),
-            child: const Text('Registrar nuevo pago'),
-          ),
-        ),
       ),
     );
   }
 }
 
 class _PaymentList extends StatelessWidget {
-  const _PaymentList({required this.payments, required this.isHistory});
+  const _PaymentList({
+    required this.payments,
+    required this.isHistory,
+    this.isLandlord = false,
+    this.onReview,
+    this.onRegister,
+  });
 
   final List<Payment> payments;
   final bool isHistory;
+  final bool isLandlord;
+  final void Function(Payment payment)? onReview;
+  final void Function(Payment payment)? onRegister;
+
+  String _title(Payment payment) {
+    if (payment.esDeposito) return payment.concepto.label;
+    return Formatters.monthYear(payment.periodo);
+  }
+
+  Color _statusColor(PaymentStatus status) {
+    return switch (status) {
+      PaymentStatus.pagado => AppColors.success,
+      PaymentStatus.enRevision => AppColors.warning,
+      PaymentStatus.rechazado => AppColors.error,
+      PaymentStatus.vencido => AppColors.error,
+      PaymentStatus.pendiente => AppColors.warning,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -236,23 +353,39 @@ class _PaymentList extends StatelessWidget {
       itemCount: payments.length,
       itemBuilder: (context, index) {
         final payment = payments[index];
+        final canReview =
+            isLandlord && payment.status == PaymentStatus.enRevision;
+        final canRegister =
+            !isLandlord && payment.status.puedeRegistrar && onRegister != null;
+
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
+            onTap: canReview && onReview != null
+                ? () => onReview!(payment)
+                : canRegister
+                    ? () => onRegister!(payment)
+                    : null,
             leading: CircleAvatar(
-              backgroundColor: isHistory
-                  ? AppColors.successLight
-                  : AppColors.warningLight,
+              backgroundColor: _statusColor(payment.status).withValues(
+                alpha: 0.15,
+              ),
               child: Icon(
-                isHistory ? Icons.check : Icons.schedule,
-                color: isHistory ? AppColors.success : AppColors.warning,
+                isHistory
+                    ? Icons.check
+                    : canRegister
+                        ? Icons.upload_file
+                        : Icons.schedule,
+                color: _statusColor(payment.status),
               ),
             ),
-            title: Text(Formatters.monthYear(payment.periodo)),
+            title: Text(_title(payment)),
             subtitle: Text(
               isHistory && payment.fechaPago != null
-                  ? 'Pagado: ${Formatters.dateShort(payment.fechaPago!)}'
-                  : 'Vence: ${Formatters.dateShort(payment.fechaVencimiento)}',
+                  ? 'Aprobado: ${Formatters.dateShort(payment.fechaPago!)}'
+                  : payment.rechazoMotivo != null
+                      ? '${payment.status.label} · ${payment.rechazoMotivo}'
+                      : 'Vence: ${Formatters.dateShort(payment.fechaVencimiento)} · ${payment.status.label}',
             ),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -262,13 +395,24 @@ class _PaymentList extends StatelessWidget {
                   Formatters.currency(payment.monto),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                Text(
-                  payment.status.label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isHistory ? AppColors.success : AppColors.warning,
+                if (canReview)
+                  const Text(
+                    'Revisar',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                else if (canRegister)
+                  const Text(
+                    'Registrar',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -289,14 +433,51 @@ class RegisterPaymentScreen extends StatefulWidget {
 
 class _RegisterPaymentScreenState extends State<RegisterPaymentScreen> {
   bool _loading = false;
+  bool _loadingPayment = true;
+  Payment? _payment;
+  String? _comprobanteBase64;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPayment();
+  }
+
+  Future<void> _loadPayment() async {
+    final payment =
+        await context.read<PaymentProvider>().getPaymentById(widget.paymentId);
+    if (mounted) {
+      setState(() {
+        _payment = payment;
+        _loadingPayment = false;
+      });
+    }
+  }
 
   Future<void> _register() async {
+    if (_comprobanteBase64 == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes adjuntar el comprobante de pago'),
+        ),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
-    await context.read<PaymentProvider>().registerPayment(widget.paymentId);
+    final paymentProvider = context.read<PaymentProvider>();
+    final auth = context.read<AuthProvider>().currentUser;
+    await paymentProvider.submitPayment(
+      widget.paymentId,
+      comprobanteBase64: _comprobanteBase64!,
+    );
+    await paymentProvider.loadDashboardData(auth);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Pago registrado. Recibo generado automáticamente.'),
+        content: Text(
+          'Comprobante enviado. El arrendador debe aprobar el pago.',
+        ),
         backgroundColor: AppColors.success,
       ),
     );
@@ -305,27 +486,73 @@ class _RegisterPaymentScreenState extends State<RegisterPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loadingPayment) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final payment = _payment;
+    if (payment == null || !payment.status.puedeRegistrar) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Registrar pago')),
+        body: Center(
+          child: Text(
+            payment == null
+                ? 'Pago no encontrado'
+                : 'Este pago no puede registrarse (${payment.status.label})',
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Registrar pago')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.payment, size: 64, color: AppColors.primary),
+            Card(
+              color: AppColors.mintCard,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      payment.esDeposito
+                          ? payment.concepto.label
+                          : Formatters.monthYear(payment.periodo),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      Formatters.currency(payment.monto),
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Vence: ${Formatters.date(payment.fechaVencimiento)}',
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
-            const Text(
-              'Confirmar registro de pago',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            ComprobantePicker(
+              comprobanteBase64: _comprobanteBase64,
+              onChanged: (value) => setState(() => _comprobanteBase64 = value),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              'Al registrar el pago se generará automáticamente un recibo PDF y se notificará al arrendador y arrendatario.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-            const Spacer(),
+            const SizedBox(height: 32),
             ElevatedButton(
               onPressed: _loading ? null : _register,
               child: _loading
@@ -337,11 +564,11 @@ class _RegisterPaymentScreenState extends State<RegisterPaymentScreen> {
                         strokeWidth: 2,
                       ),
                     )
-                  : const Text('Confirmar pago'),
+                  : const Text('Enviar comprobante'),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: _loading ? null : () => Navigator.pop(context),
               child: const Text('Cancelar'),
             ),
           ],
