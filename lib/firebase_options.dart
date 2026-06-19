@@ -9,9 +9,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -41,5 +39,13 @@ class DefaultFirebaseOptions {
     projectId: 'arrienda-seguro-d3d45',
     storageBucket: 'arrienda-seguro-d3d45.firebasestorage.app',
     iosBundleId: 'com.arriendaseguro.arriendaSeguro',
+  );
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyCdIHNAXGkSC72i78zkXC2x-n2xhp2cE4E',
+    appId: '1:271119233724:web:14b461435d9f914cde56b9',
+    messagingSenderId: '271119233724',
+    projectId: 'arrienda-seguro-d3d45',
+    authDomain: 'arrienda-seguro-d3d45.firebaseapp.com',
+    storageBucket: 'arrienda-seguro-d3d45.firebasestorage.app',
   );
 }

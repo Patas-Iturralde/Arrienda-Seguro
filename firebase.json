@@ -2,6 +2,31 @@
   "firestore": {
     "rules": "firestore.rules"
   },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|wasm|css|png|jpg|jpeg|gif|webp|svg|ico|woff|woff2|ttf)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      }
+    ]
+  },
   "flutter": {
     "platforms": {
       "android": {
@@ -15,7 +40,9 @@
         "lib/firebase_options.dart": {
           "projectId": "arrienda-seguro-d3d45",
           "configurations": {
-            "android": "1:271119233724:android:9772de2414dc1a3dde56b9"
+            "android": "1:271119233724:android:9772de2414dc1a3dde56b9",
+            "ios": "1:271119233724:ios:9e6c6d81ddd243acde56b9",
+            "web": "1:271119233724:web:14b461435d9f914cde56b9"
           }
         }
       }

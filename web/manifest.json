@@ -1,12 +1,12 @@
 {
-    "name": "arrienda_seguro",
-    "short_name": "arrienda_seguro",
+    "name": "Arrienda Seguro",
+    "short_name": "Arrienda Seguro",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#006D5B",
+    "theme_color": "#006D5B",
+    "description": "Administra arriendos de forma segura",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
