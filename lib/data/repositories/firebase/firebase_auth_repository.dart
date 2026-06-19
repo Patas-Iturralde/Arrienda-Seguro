@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../core/utils/firebase_auth_errors.dart';
 import '../../models/app_user.dart';
@@ -31,36 +32,52 @@ class FirebaseAuthRepository implements AuthRepository {
   Stream<AppUser?> get authStateChanges async* {
     await for (final firebaseUser in _auth.authStateChanges()) {
       if (firebaseUser == null) {
-        _cachedUser = null;
-        yield null;
+        // Evita borrar la sesión por eventos transitorios del stream en web.
+        if (_auth.currentUser == null) {
+          _cachedUser = null;
+          yield null;
+        }
         continue;
       }
-      _cachedUser = await _loadUser(firebaseUser.uid);
-      yield _cachedUser;
+      try {
+        _cachedUser = await _loadUser(firebaseUser.uid);
+        yield _cachedUser;
+      } catch (e) {
+        debugPrint('Error al cargar usuario en authStateChanges: $e');
+        if (_cachedUser != null) {
+          yield _cachedUser;
+        }
+      }
     }
   }
 
   Future<AppUser?> _loadUser(String uid) async {
-    final doc = await _users.doc(uid).get();
-    if (!doc.exists || doc.data() == null) {
-      final firebaseUser = _auth.currentUser;
-      if (firebaseUser == null) return null;
-      return AppUser(
-        id: uid,
-        nombre: firebaseUser.displayName?.split(' ').first ?? 'Usuario',
-        apellido: firebaseUser.displayName?.split(' ').skip(1).join(' ') ?? '',
-        email: firebaseUser.email ?? '',
-        telefono: firebaseUser.phoneNumber ?? '',
-        cedula: '',
-        role: UserRole.arrendatario,
-        estadoCivil: MaritalStatus.soltero,
-        ocupacion: '',
-        domicilio: '',
-        tipoDocumentoIdentidad: IdDocumentType.cedula,
-        fechaNacimiento: DateTime(1990, 1, 1),
-      );
+    try {
+      final doc = await _users.doc(uid).get();
+      if (!doc.exists || doc.data() == null) {
+        final firebaseUser = _auth.currentUser;
+        if (firebaseUser == null) return null;
+        return AppUser(
+          id: uid,
+          nombre: firebaseUser.displayName?.split(' ').first ?? 'Usuario',
+          apellido:
+              firebaseUser.displayName?.split(' ').skip(1).join(' ') ?? '',
+          email: firebaseUser.email ?? '',
+          telefono: firebaseUser.phoneNumber ?? '',
+          cedula: '',
+          role: UserRole.arrendatario,
+          estadoCivil: MaritalStatus.soltero,
+          ocupacion: '',
+          domicilio: '',
+          tipoDocumentoIdentidad: IdDocumentType.cedula,
+          fechaNacimiento: DateTime(1990, 1, 1),
+        );
+      }
+      return AppUser.fromMap({...doc.data()!, 'id': uid});
+    } catch (e) {
+      debugPrint('Error al cargar perfil de usuario: $e');
+      rethrow;
     }
-    return AppUser.fromMap({...doc.data()!, 'id': uid});
   }
 
   @override

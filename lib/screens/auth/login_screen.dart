@@ -68,6 +68,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    if (auth.isAuthenticated) {
+      return const SizedBox.shrink();
+    }
+
     final useFirebase = firebaseEnabled;
 
     return Scaffold(
@@ -279,7 +284,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (result.isSuccess) {
-      Navigator.pop(context, true);
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } else {
       setState(() {
         _loading = false;
@@ -290,6 +295,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    if (auth.isAuthenticated) {
+      return const SizedBox.shrink();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Crear cuenta'),

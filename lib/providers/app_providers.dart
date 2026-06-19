@@ -33,7 +33,11 @@ class AuthProvider extends ChangeNotifier {
 
   Future<AuthResult> signIn(String email, String password) async {
     final result = await _authRepository.signIn(email, password);
-    if (result.isSuccess) notifyListeners();
+    if (result.isSuccess) {
+      notifyListeners();
+      await Future<void>.delayed(Duration.zero);
+      notifyListeners();
+    }
     return result;
   }
 
@@ -69,7 +73,11 @@ class AuthProvider extends ChangeNotifier {
       documentoIdentidadBase64: documentoIdentidadBase64,
       fotoBase64: fotoBase64,
     );
-    if (result.isSuccess) notifyListeners();
+    if (result.isSuccess) {
+      notifyListeners();
+      await Future<void>.delayed(Duration.zero);
+      notifyListeners();
+    }
     return result;
   }
 
