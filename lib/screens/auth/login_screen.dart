@@ -10,6 +10,7 @@ import '../../data/models/user_role.dart';
 import '../../providers/app_providers.dart';
 import '../../widgets/base64_image_picker.dart';
 import '../../widgets/id_document_picker.dart';
+import '../../widgets/terms_and_conditions_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -230,6 +231,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   DateTime _fechaNacimiento = DateTime(1995, 1, 1);
   String? _fotoBase64;
   String? _documentoIdentidadBase64;
+  bool _acceptedTerms = false;
   bool _loading = false;
   String? _error;
 
@@ -254,6 +256,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Debes subir la foto de tu documento de identidad'),
+        ),
+      );
+      return;
+    }
+
+    if (!_acceptedTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes aceptar los términos y condiciones'),
         ),
       );
       return;
@@ -555,6 +566,51 @@ class _RegisterScreenState extends State<RegisterScreen> {
               onChanged: (v) {
                 if (v != null) setState(() => _role = v);
               },
+            ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Checkbox(
+                  value: _acceptedTerms,
+                  activeColor: AppColors.primary,
+                  onChanged: _loading
+                      ? null
+                      : (value) =>
+                          setState(() => _acceptedTerms = value ?? false),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _loading
+                        ? null
+                        : () => setState(
+                              () => _acceptedTerms = !_acceptedTerms,
+                            ),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          const Text('Acepto los '),
+                          InkWell(
+                            onTap: () =>
+                                TermsAndConditionsDialog.show(context),
+                            child: const Text(
+                              'términos y condiciones',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                          const Text(' de Arrienda Seguro *'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             if (_error != null) ...[
               const SizedBox(height: 16),
